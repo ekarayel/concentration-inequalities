@@ -11,8 +11,9 @@ lemma paley_zigmund:
   assumes t: "\<theta> \<le> 1"
   assumes Zpos: "\<And>z. z \<in> space M \<Longrightarrow> Z z \<ge> 0"
   shows "
-    (variance Z + (1-\<theta>)^2 * (expectation Z)^2) * prob {z. Z z > \<theta> * expectation Z}
-    \<ge> (1-\<theta>)^2 * (expectation Z)^2"
+    (variance Z + (1-\<theta>)^2 * (expectation Z)^2) *
+    prob {z \<in> space M. Z z > \<theta> * expectation Z}
+      \<ge> (1-\<theta>)^2 * (expectation Z)^2"
 proof -
   have intZ: "integrable M Z"
     apply (subst square_integrable_imp_integrable[OF rv intZsq])
@@ -34,12 +35,12 @@ proof -
   ultimately have *: "expectation (\<lambda>z. Z z - \<theta> * eZ) = eZ - \<theta> * eZ"
     by linarith
 
-  have ev: "{z. \<theta> * eZ < Z z} \<in> events"
-    sorry
-    (* should come from rv? *)
+  have ev: "{z \<in> space M. \<theta> * eZ < Z z} \<in> events"
+    using rv unfolding borel_measurable_iff_greater
+    by auto
 
   have ***: "eZ - \<theta> * eZ \<le>
-    expectation (\<lambda>z. (Z z - \<theta> * eZ) * indicat_real {z. Z z > \<theta> * eZ} z)"
+    expectation (\<lambda>z. (Z z - \<theta> * eZ) * indicat_real {z \<in> space M. Z z > \<theta> * eZ} z)"
     unfolding *[symmetric]
     apply (auto intro!: integral_mono) 
     using intZ apply auto[1]
@@ -69,24 +70,22 @@ proof -
     by (metis mult.commute mult.right_neutral power_mult_distrib right_diff_distrib')
 
   moreover have"... \<le>
-    (expectation (\<lambda>z. (Z z - \<theta> * eZ) * indicat_real {z. Z z > \<theta> * eZ} z))^2"
+    (expectation (\<lambda>z. (Z z - \<theta> * eZ) * indicat_real {z \<in> space M. Z z > \<theta> * eZ} z))^2"
     using ***  
     by (smt (verit) \<open>0 \<le> eZ\<close> mult.commute mult_left_le power2_less_imp_less t)
 
   moreover have "... \<le>
-    expectation (\<lambda>z. (Z z - \<theta> * eZ)^2) * (expectation (\<lambda>z. indicat_real {z. Z z > \<theta> * eZ} z^2))"
+    expectation (\<lambda>z. (Z z - \<theta> * eZ)^2) * (expectation (\<lambda>z. indicat_real {z \<in> space M. Z z > \<theta> * eZ} z^2))"
     sorry
     (* Cauchy-Schwarz for E of product of two random variables *)
 
   moreover have "... = 
-    expectation (\<lambda>z. (Z z - \<theta> * eZ)^2) * expectation (\<lambda>z. indicat_real {z. Z z > \<theta> * eZ} z)"
-    by (metis indicator_simps(1) indicator_simps(2) one_power2 zero_eq_power2)
-  moreover have "... = expectation (\<lambda>z. (Z z - \<theta> * eZ)^2) * prob {z. Z z > \<theta> * eZ}"
-    apply auto
-    using ev measure_space_inter by blast
-
+    expectation (\<lambda>z. (Z z - \<theta> * eZ)^2) * expectation (\<lambda>z. indicat_real {z \<in> space M. Z z > \<theta> * eZ} z)"
+    by (metis (no_types, lifting) indicator_simps(1) indicator_simps(2) one_power2 power_zero_numeral)
+  moreover have "... = expectation (\<lambda>z. (Z z - \<theta> * eZ)^2) * prob {z \<in> space M. Z z > \<theta> * eZ}"
+    using ev measure_space_inter by auto
   ultimately have "(1-\<theta>)^2 * (expectation Z)^2 \<le>
-     expectation (\<lambda>z. (Z z - \<theta> * eZ)^2) * prob {z. Z z > \<theta> * eZ}" by auto
+     expectation (\<lambda>z. (Z z - \<theta> * eZ)^2) * prob {z \<in> space M. Z z > \<theta> * eZ}" by auto
   thus ?thesis
     using eZ_def veq by fastforce
 qed
