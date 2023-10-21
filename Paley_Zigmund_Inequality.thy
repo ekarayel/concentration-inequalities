@@ -6,35 +6,28 @@ begin
 context prob_space
 begin
 
-lemma arith:
-  assumes "a \<ge> (0::real)" "b \<ge> 0" "c \<ge> 0"
-    "a \<le> (b powr (1/2)) * (c powr (1/2))"
-  shows "a^2 \<le> b * c"
-  by (metis assms(1) assms(2) assms(3) assms(4) powr_half_sqrt real_sqrt_le_iff real_sqrt_mult real_sqrt_unique)
-
-lemma paley_zigmund:
+lemma paley_zigmund_holder:
+  assumes p: "1 < (p::real)"
   assumes rv: "random_variable borel Z"
-  assumes intZsq: "integrable M (\<lambda>z. (Z z)^2)"
+  assumes intZp: "integrable M (\<lambda>z. \<bar>Z z\<bar> powr p)"
   assumes t: "\<theta> \<le> 1"
   assumes Zpos: "\<And>z. z \<in> space M \<Longrightarrow> Z z \<ge> 0"
   shows "
-    (variance Z + (1-\<theta>)^2 * (expectation Z)^2) *
+    (expectation (\<lambda>x. \<bar>Z x - \<theta> * expectation Z\<bar> powr p) powr (1 / (p-1))) *
     prob {z \<in> space M. Z z > \<theta> * expectation Z}
-      \<ge> (1-\<theta>)^2 * (expectation Z)^2"
+      \<ge> ((1-\<theta>) powr (p / (p-1)) * expectation Z powr (p / (p-1))) "
 proof -
   have intZ: "integrable M Z"
-    apply (subst square_integrable_imp_integrable[OF rv intZsq])
-    by auto
-
-  have sqI:"(indicat_real E x)^2 = indicat_real E (x::'a)" for E x
-    by (metis indicator_simps(1) indicator_simps(2) one_power2 zero_power2)
+    apply (subst bound_L1_Lp[OF _ rv intZp])
+    using p by auto
 
   define eZ where "eZ = expectation Z"
   have "eZ \<ge> 0"
     unfolding eZ_def
     using Bochner_Integration.integral_nonneg Zpos by blast
-  then have ezp:"eZ - \<theta> * eZ \<ge> 0"
-    by (metis diff_ge_0_iff_ge mult.commute mult_left_le t)
+
+  have ezp: "expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) \<ge> 0"
+    by (meson Bochner_Integration.integral_nonneg powr_ge_pzero)
 
   have "expectation (\<lambda>z. Z z - \<theta> * eZ) = expectation (\<lambda>z. Z z + (- \<theta> * eZ))"
     by auto
@@ -51,18 +44,21 @@ proof -
     using rv unfolding borel_measurable_iff_greater
     by auto
 
-  (* TODO: Generalize beyond p = 2, q = 2 *)
-  define p where "p = (2::real)"
-  define q where "q = (2::real)"
-  have pq: "0 < (p::real)" "0 < (q::real)" "1 / p + 1 / q = 1 "
-    unfolding p_def q_def by auto
+  define q where "q = p / (p-1)"
+
+  have sqI:"(indicat_real E x) powr q = indicat_real E (x::'a)" for E x
+    unfolding q_def
+    by (metis indicator_simps(1) indicator_simps(2) powr_0 powr_one_eq_one)
 
   have bm1: "(\<lambda>z. (Z z - \<theta> * eZ)) \<in> borel_measurable M"
     using borel_measurable_const borel_measurable_diff rv by blast
   have bm2: "(\<lambda>z. indicat_real {z \<in> space M. Z z > \<theta> * eZ} z) \<in> borel_measurable M"
     using borel_measurable_indicator ev by blast
-  have int1: "integrable M (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p)"
-    unfolding p_def by (auto simp add: intZsq power2_diff intZ)
+  have "integrable M (\<lambda>x. \<bar>Z x + (-\<theta> * eZ)\<bar> powr p)"
+    apply (intro Minkowski_inequality[OF _ rv _ intZp])
+    using p by auto
+  then have int1: "integrable M (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p)"
+     by auto
 
   have "integrable M
    (\<lambda>x. 1 * indicat_real {z \<in> space M. \<theta> * eZ < Z z} x)"
@@ -71,10 +67,13 @@ proof -
     
   then have int2: " integrable M
      (\<lambda>x. \<bar>indicat_real {z \<in> space M. \<theta> * eZ < Z z} x\<bar> powr q)"
-    unfolding q_def by (auto simp add: sqI )
+     by (auto simp add: sqI )
 
+  have pq:"p > (0::real)" "q > 0" "1/p + 1/q = 1"
+    unfolding q_def using p apply auto
+    by (metis add.commute add_divide_distrib diff_add_cancel div_self not_one_less_zero)
   from Holder_inequality[OF pq bm1 bm2 int1 int2]
-  have hi: "\<bar>expectation (\<lambda>x. (Z x - \<theta> * eZ) * indicat_real {z \<in> space M. \<theta> * eZ < Z z} x)\<bar>
+  have hi: "expectation (\<lambda>x. (Z x - \<theta> * eZ) * indicat_real {z \<in> space M. \<theta> * eZ < Z z} x)
     \<le> expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / p) *
       expectation (\<lambda>x. \<bar>indicat_real {z \<in> space M. \<theta> * eZ < Z z} x\<bar> powr q) powr (1 / q)"
     by auto
@@ -89,15 +88,95 @@ proof -
     by (auto simp add: mult_nonneg_nonpos2)
 
   moreover have "... \<le>
-      expectation (\<lambda>x. (Z x - \<theta> * eZ)^2 ) powr (1 / 2) *
-      expectation (\<lambda>x. indicat_real {z \<in> space M. \<theta> * eZ < Z z} x) powr (1 / 2)"
-    using hi unfolding p_def q_def by (auto simp add: sqI)
+      expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / p) *
+      expectation (\<lambda>x. indicat_real {z \<in> space M. \<theta> * eZ < Z z} x) powr (1 / q)"
+    using hi by (auto simp add: sqI)
 
-  ultimately have ***: "(eZ - \<theta> * eZ)^2 \<le>
-     expectation (\<lambda>x. (Z x - \<theta> * eZ)^2 ) *
-     expectation (\<lambda>x. indicat_real {z \<in> space M. \<theta> * eZ < Z z} x)"
-    by (auto intro!: arith[OF ezp])
+  ultimately have "eZ - \<theta> * eZ \<le>
+     expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / p) *
+     expectation (\<lambda>x. indicat_real {z \<in> space M. \<theta> * eZ < Z z} x) powr (1 / q)"
+    by auto
 
+  then have "(eZ - \<theta> * eZ) powr q \<le>
+     (expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / p) *
+     expectation (\<lambda>x. indicat_real {z \<in> space M. \<theta> * eZ < Z z} x) powr (1 / q)) powr q"
+    by (smt (verit, ccfv_SIG) \<open>0 \<le> eZ\<close> mult_left_le_one_le powr_mono2 pq(2) right_diff_distrib' t zero_le_mult_iff)
+
+  moreover have "... =
+     (expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / p)) powr q *
+     (expectation (\<lambda>x. indicat_real {z \<in> space M. \<theta> * eZ < Z z} x) powr (1 / q)) powr q"
+    using powr_ge_pzero powr_mult by presburger
+  moreover have "... =
+     (expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / p)) powr q *
+     (expectation (\<lambda>x. indicat_real {z \<in> space M. \<theta> * eZ < Z z} x))"
+    by (smt (verit, ccfv_SIG) Bochner_Integration.integral_nonneg divide_le_eq_1_pos indicator_pos_le nonzero_eq_divide_eq p powr_one powr_powr q_def)
+  moreover have "... =
+     (expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / (p-1))) *
+     (expectation (\<lambda>x. indicat_real {z \<in> space M. \<theta> * eZ < Z z} x))"
+   by (smt (verit, ccfv_threshold) divide_divide_eq_right divide_self_if p powr_powr q_def times_divide_eq_left)
+  moreover have "... =
+     (expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / (p-1))) *
+     prob {z \<in> space M. Z z > \<theta> * eZ}"
+    by (simp add: ev)
+
+  ultimately have 1: "(eZ - \<theta> * eZ) powr q \<le>
+     (expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / (p-1))) *
+     prob {z \<in> space M. Z z > \<theta> * eZ}" by linarith
+
+  have "(eZ - \<theta> * eZ) powr q = ((1 - \<theta>) * eZ) powr q"
+    by (simp add: mult.commute right_diff_distrib)
+  moreover have "... = (1 - \<theta>) powr q * eZ powr q"
+    by (simp add: \<open>0 \<le> eZ\<close> powr_mult t)
+  ultimately show ?thesis using 1 eZ_def q_def by force
+qed
+
+corollary paley_zigmund:
+  assumes rv: "random_variable borel Z"
+  assumes intZsq: "integrable M (\<lambda>z. (Z z)^2)"
+  assumes t: "\<theta> \<le> 1"
+  assumes Zpos: "\<And>z. z \<in> space M \<Longrightarrow> Z z \<ge> 0"
+  shows "
+    (variance Z + (1-\<theta>)^2 * (expectation Z)^2) *
+    prob {z \<in> space M. Z z > \<theta> * expectation Z}
+      \<ge> (1-\<theta>)^2 * (expectation Z)^2"
+proof -
+  define p where "p = (2::real)"
+  have p1: "1 < p" using p_def by auto
+  have " integrable M (\<lambda>z. \<bar>Z z\<bar> powr p)" unfolding p_def
+    using intZsq by auto
+
+  from paley_zigmund_holder[OF p1 rv this t Zpos]
+  have "(1 - \<theta>) powr (p / (p - 1)) * (expectation Z powr (p / (p - 1)))
+    \<le> expectation (\<lambda>x. \<bar>Z x - \<theta> * expectation Z\<bar> powr p) powr (1 / (p - 1)) *
+       prob {z \<in> space M.  \<theta> * expectation Z < Z z}" .
+
+  then have hi: "(1 - \<theta>)^2 * (expectation Z)^2
+    \<le> expectation (\<lambda>x. (Z x - \<theta> * expectation Z)^2) *
+       prob {z \<in> space M.  \<theta> * expectation Z < Z z}"
+    unfolding p_def by (auto simp add: Zpos t)
+
+  have intZ: "integrable M Z"
+    apply (subst square_integrable_imp_integrable[OF rv intZsq])
+    by auto
+
+  define eZ where "eZ = expectation Z"
+  have "eZ \<ge> 0"
+    unfolding eZ_def
+    using Bochner_Integration.integral_nonneg Zpos by blast
+
+  have ezp: "expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) \<ge> 0"
+    by (meson Bochner_Integration.integral_nonneg powr_ge_pzero)
+
+  have "expectation (\<lambda>z. Z z - \<theta> * eZ) = expectation (\<lambda>z. Z z + (- \<theta> * eZ))"
+    by auto
+  moreover have "... = expectation Z + expectation (\<lambda>z. - \<theta> * eZ)"
+    apply (subst Bochner_Integration.integral_add)
+    using intZ by auto
+  moreover have "... = eZ + (- \<theta> * eZ)"
+    apply (subst lebesgue_integral_const)
+    using eZ_def prob_space by auto
+  ultimately have *: "expectation (\<lambda>z. Z z - \<theta> * eZ) = eZ - \<theta> * eZ"
+    by linarith
   have "variance Z =
      variance (\<lambda>z. (Z z - \<theta> * eZ))"
     using "*" eZ_def by auto
@@ -112,21 +191,10 @@ proof -
     by (metis left_diff_distrib mult_1 power_mult_distrib)
   ultimately have veq: "expectation (\<lambda>z. (Z z - \<theta> * eZ)^2) = (variance Z + (1-\<theta>)^2 * eZ^2)"
     by linarith
-
-  have "(1-\<theta>)^2 * (expectation Z)^2 = (eZ - \<theta> * eZ)^2"
-    unfolding eZ_def[symmetric]
-    by (metis mult.commute mult.right_neutral power_mult_distrib right_diff_distrib')
-
-  moreover have "... \<le> 
-    expectation (\<lambda>z. (Z z - \<theta> * eZ)^2) * expectation (\<lambda>z. indicat_real {z \<in> space M. Z z > \<theta> * eZ} z)"
-    using "***" by blast
-  moreover have "... = expectation (\<lambda>z. (Z z - \<theta> * eZ)^2) * prob {z \<in> space M. Z z > \<theta> * eZ}"
-    using ev measure_space_inter by auto
-  ultimately have "(1-\<theta>)^2 * (expectation Z)^2 \<le>
-     expectation (\<lambda>z. (Z z - \<theta> * eZ)^2) * prob {z \<in> space M. Z z > \<theta> * eZ}" by auto
   thus ?thesis
-    using eZ_def veq by fastforce
+    using hi by (simp add: eZ_def)
 qed
+
 
 end
 
