@@ -1,4 +1,4 @@
-theory Paley_Zigmund_Inequality
+theory Paley_Zygmund_Inequality
   imports "HOL-Probability.Probability"
     Lp.Lp
 begin
@@ -81,8 +81,8 @@ proof -
   have "eZ - \<theta> * eZ \<le>
     expectation (\<lambda>z. (Z z - \<theta> * eZ) * indicat_real {z \<in> space M. Z z > \<theta> * eZ} z)"
     unfolding *[symmetric]
-    apply (auto intro!: integral_mono) 
-    using intZ apply auto[1]
+    apply (intro integral_mono)
+    using intZ ev apply auto[1]
     apply (auto intro!: integrable_real_mult_indicator simp add: intZ ev)[1]
     unfolding indicator_def of_bool_def
     by (auto simp add: mult_nonneg_nonpos2)
@@ -169,32 +169,29 @@ proof -
 
   have "expectation (\<lambda>z. Z z - \<theta> * eZ) = expectation (\<lambda>z. Z z + (- \<theta> * eZ))"
     by auto
-  moreover have "... = expectation Z + expectation (\<lambda>z. - \<theta> * eZ)"
+  also have "... = expectation Z + expectation (\<lambda>z. - \<theta> * eZ)"
     apply (subst Bochner_Integration.integral_add)
     using intZ by auto
-  moreover have "... = eZ + (- \<theta> * eZ)"
+  also have "... = eZ + (- \<theta> * eZ)"
     apply (subst lebesgue_integral_const)
     using eZ_def prob_space by auto
-  ultimately have *: "expectation (\<lambda>z. Z z - \<theta> * eZ) = eZ - \<theta> * eZ"
+  finally have *: "expectation (\<lambda>z. Z z - \<theta> * eZ) = eZ - \<theta> * eZ"
     by linarith
   have "variance Z =
      variance (\<lambda>z. (Z z - \<theta> * eZ))"
     using "*" eZ_def by auto
-  moreover have "... =
+  also have "... =
     expectation (\<lambda>z. (Z z - \<theta> * eZ)^2)
     - (expectation (\<lambda>x. Z x - \<theta> * eZ))\<^sup>2"
     apply (subst variance_eq)
     by (auto simp add: intZ power2_diff intZsq)
-  moreover have "... = expectation (\<lambda>z. (Z z - \<theta> * eZ)^2) - ((1-\<theta>)^2 * eZ^2)"
-    unfolding *
-    apply auto
-    by (metis left_diff_distrib mult_1 power_mult_distrib)
-  ultimately have veq: "expectation (\<lambda>z. (Z z - \<theta> * eZ)^2) = (variance Z + (1-\<theta>)^2 * eZ^2)"
+  also have "... = expectation (\<lambda>z. (Z z - \<theta> * eZ)^2) - ((1-\<theta>)^2 * eZ^2)"
+    unfolding * by (auto simp:algebra_simps power2_eq_square)
+  finally have veq: "expectation (\<lambda>z. (Z z - \<theta> * eZ)^2) = (variance Z + (1-\<theta>)^2 * eZ^2)"
     by linarith
   thus ?thesis
     using hi by (simp add: eZ_def)
 qed
-
 
 end
 
