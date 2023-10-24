@@ -1,0 +1,31 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{isabelle,isabellesym}
+\usepackage{pdfsetup}
+\urlstyle{rm}
+\isabellestyle{it}
+\begin{document}
+
+\title{Concentration Inequalities}
+\author{Yong Kiam Tan and Emin Karayel}
+\maketitle
+
+\abstract{Concentration inequalities provide bounds on how a random variable (or a sum/composition
+of random variables) deviate from their expectation. Usually based on moments/independence of the
+variables.
+
+The most-important concentration inequalities (the Markov, Chebyshev and Hoelder-inequality) are
+already part of HOL-Probability. This entry collects more advanced less well-known results, such as
+the Paley-Zygmund-Inequality [TODO Add more].}
+
+\tableofcontents
+
+% sane default for proof documents
+\parindent 0pt\parskip 0.5ex
+
+\input{session}
+
+\bibliographystyle{abbrv}
+\bibliography{root}
+
+\end{document}
