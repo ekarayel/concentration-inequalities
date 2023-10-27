@@ -76,6 +76,30 @@ proof -
   finally show ?thesis .
 qed
 
+(* the left sided (negative) version of the inequality *)
+corollary cantelli_inequality_neg:
+  assumes [measurable]: "random_variable borel Z"
+  assumes intZsq: "integrable M (\<lambda>z. Z z^2)"
+  assumes a: "a > 0"
+  shows "prob {z \<in> space M. Z z - expectation Z \<le> -a} \<le>
+    variance Z / (a^2 + variance Z)"
+proof -
+  define nZ where [simp]: "nZ = (\<lambda>z. -Z z)"
+  have vnZ: "variance nZ = variance Z"
+    unfolding nZ_def
+    by (auto simp add: power2_commute)
+
+  have 1: "random_variable borel nZ" by auto
+  have 2: "integrable M (\<lambda>z. (nZ z)\<^sup>2) "
+    using intZsq by auto
+  from cantelli_inequality[OF 1 2 a]
+  have "prob {z \<in> space M. a \<le> nZ z - expectation nZ} \<le>
+    variance nZ / (a^2 + variance nZ)"
+    by auto
+  thus ?thesis unfolding vnZ apply auto[1]
+    by (smt (verit, del_insts) Collect_cong)
+qed
+
 end
 
 end
