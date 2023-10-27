@@ -5,6 +5,7 @@ session Concentration_Inequalities = "HOL-Probability" +
   theories
     Effron_Stein_Inequality
     Paley_Zygmund_Inequality
+    Cantelli_Inequality
   document_files
     "root.tex"
     "root.bib"
