@@ -11,7 +11,7 @@ lemma paley_zygmund_holder:
   assumes rv: "random_variable borel Z"
   assumes intZp: "integrable M (\<lambda>z. \<bar>Z z\<bar> powr p)"
   assumes t: "\<theta> \<le> 1"
-  assumes ZAEpos: "prob {z \<in> space M. Z z \<ge> 0} = 1"
+  assumes ZAEpos: "AE z in M. Z z \<ge> 0"
   shows "
     (expectation (\<lambda>x. \<bar>Z x - \<theta> * expectation Z\<bar> powr p) powr (1 / (p-1))) *
     prob {z \<in> space M. Z z > \<theta> * expectation Z}
@@ -140,8 +140,8 @@ corollary paley_zygmund:
     prob {z \<in> space M. Z z > \<theta> * expectation Z}
       \<ge> (1-\<theta>)^2 * (expectation Z)^2"
 proof -
-  have ZAEpos: "prob {z \<in> space M. Z z \<ge> 0} = 1"
-  by (smt (verit, best) Collect_cong Int_def Zpos measure_notin_sets prob_space sets.Int_space_eq2)
+  have ZAEpos: "AE z in M. Z z \<ge> 0"
+    by (simp add: Zpos)
 
   define p where "p = (2::real)"
   have p1: "1 < p" using p_def by auto
