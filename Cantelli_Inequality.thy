@@ -7,9 +7,17 @@ begin
 
 lemma cantelli_arith:
   assumes "a > (0::real)"
-  shows "(V + (V / a)^2)  / (a + (V / a))^2 = V / (a ^2 + V)"
-  using assms
-  by (sos "((((() & ()) & (() & ())) & ((() & ()) & (() & ()))) & ((((() & ()) & (() & ())) & ((() & ()) & (() & ()))) & (((() & ()) & (() & ())) & ((() & ()) & (() & ())))))")
+  shows "(V + (V / a)^2) / (a + (V / a))^2 = V / (a ^2 + V)" (is "?L = ?R")
+proof -
+  have "?L = ((V * a^2 + V^2) / a^2) / ((a^2 + V)^2/a^2)"
+    using assms by (intro arg_cong2[where f="(/)"]) (simp_all add:field_simps power2_eq_square)
+  also have "... = (V * a\<^sup>2 + V\<^sup>2)/ (a\<^sup>2 + V)\<^sup>2"
+    using assms unfolding divide_divide_times_eq by simp
+  also have "... = V * (a^2 + V) / (a^2 + V)^2"
+    by (intro arg_cong2[where f="(/)"]) (simp_all add: algebra_simps power2_eq_square)
+  also have "... = ?R" by (simp add:power2_eq_square)
+  finally show ?thesis by simp
+qed
 
 lemma cantelli_inequality:
   assumes [measurable]: "random_variable borel Z"
