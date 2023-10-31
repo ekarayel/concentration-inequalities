@@ -11,7 +11,7 @@ lemma paley_zygmund_holder:
   assumes rv: "random_variable borel Z"
   assumes intZp: "integrable M (\<lambda>z. \<bar>Z z\<bar> powr p)"
   assumes t: "\<theta> \<le> 1"
-  assumes Zpos: "\<And>z. z \<in> space M \<Longrightarrow> Z z \<ge> 0"
+  assumes ZAEpos: "prob {z \<in> space M. Z z \<ge> 0} = 1"
   shows "
     (expectation (\<lambda>x. \<bar>Z x - \<theta> * expectation Z\<bar> powr p) powr (1 / (p-1))) *
     prob {z \<in> space M. Z z > \<theta> * expectation Z}
@@ -24,7 +24,7 @@ proof -
   define eZ where "eZ = expectation Z"
   have "eZ \<ge> 0"
     unfolding eZ_def
-    using Bochner_Integration.integral_nonneg Zpos by blast
+    using ZAEpos intZ integral_ge_const prob_Collect_eq_1 by auto
 
   have ezp: "expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) \<ge> 0"
     by (meson Bochner_Integration.integral_nonneg powr_ge_pzero)
@@ -140,12 +140,15 @@ corollary paley_zygmund:
     prob {z \<in> space M. Z z > \<theta> * expectation Z}
       \<ge> (1-\<theta>)^2 * (expectation Z)^2"
 proof -
+  have ZAEpos: "prob {z \<in> space M. Z z \<ge> 0} = 1"
+  by (smt (verit, best) Collect_cong Int_def Zpos measure_notin_sets prob_space sets.Int_space_eq2)
+
   define p where "p = (2::real)"
   have p1: "1 < p" using p_def by auto
   have " integrable M (\<lambda>z. \<bar>Z z\<bar> powr p)" unfolding p_def
     using intZsq by auto
 
-  from paley_zygmund_holder[OF p1 rv this t Zpos]
+  from paley_zygmund_holder[OF p1 rv this t ZAEpos]
   have "(1 - \<theta>) powr (p / (p - 1)) * (expectation Z powr (p / (p - 1)))
     \<le> expectation (\<lambda>x. \<bar>Z x - \<theta> * expectation Z\<bar> powr p) powr (1 / (p - 1)) *
        prob {z \<in> space M.  \<theta> * expectation Z < Z z}" .
