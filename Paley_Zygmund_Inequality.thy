@@ -6,7 +6,7 @@ begin
 context prob_space
 begin
 
-lemma paley_zigmund_holder:
+lemma paley_zygmund_holder:
   assumes p: "1 < (p::real)"
   assumes rv: "random_variable borel Z"
   assumes intZp: "integrable M (\<lambda>z. \<bar>Z z\<bar> powr p)"
@@ -87,12 +87,12 @@ proof -
     unfolding indicator_def of_bool_def
     by (auto simp add: mult_nonneg_nonpos2)
 
-  moreover have "... \<le>
+  also have "... \<le>
       expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / p) *
       expectation (\<lambda>x. indicat_real {z \<in> space M. \<theta> * eZ < Z z} x) powr (1 / q)"
     using hi by (auto simp add: sqI)
 
-  ultimately have "eZ - \<theta> * eZ \<le>
+  finally have "eZ - \<theta> * eZ \<le>
      expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / p) *
      expectation (\<lambda>x. indicat_real {z \<in> space M. \<theta> * eZ < Z z} x) powr (1 / q)"
     by auto
@@ -102,35 +102,35 @@ proof -
      expectation (\<lambda>x. indicat_real {z \<in> space M. \<theta> * eZ < Z z} x) powr (1 / q)) powr q"
     by (smt (verit, ccfv_SIG) \<open>0 \<le> eZ\<close> mult_left_le_one_le powr_mono2 pq(2) right_diff_distrib' t zero_le_mult_iff)
 
-  moreover have "... =
+  also have "... =
      (expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / p)) powr q *
      (expectation (\<lambda>x. indicat_real {z \<in> space M. \<theta> * eZ < Z z} x) powr (1 / q)) powr q"
     using powr_ge_pzero powr_mult by presburger
-  moreover have "... =
+  also have "... =
      (expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / p)) powr q *
      (expectation (\<lambda>x. indicat_real {z \<in> space M. \<theta> * eZ < Z z} x))"
     by (smt (verit, ccfv_SIG) Bochner_Integration.integral_nonneg divide_le_eq_1_pos indicator_pos_le nonzero_eq_divide_eq p powr_one powr_powr q_def)
-  moreover have "... =
+  also have "... =
      (expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / (p-1))) *
      (expectation (\<lambda>x. indicat_real {z \<in> space M. \<theta> * eZ < Z z} x))"
    by (smt (verit, ccfv_threshold) divide_divide_eq_right divide_self_if p powr_powr q_def times_divide_eq_left)
-  moreover have "... =
+  also have "... =
      (expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / (p-1))) *
      prob {z \<in> space M. Z z > \<theta> * eZ}"
     by (simp add: ev)
 
-  ultimately have 1: "(eZ - \<theta> * eZ) powr q \<le>
+  finally have 1: "(eZ - \<theta> * eZ) powr q \<le>
      (expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / (p-1))) *
      prob {z \<in> space M. Z z > \<theta> * eZ}" by linarith
 
   have "(eZ - \<theta> * eZ) powr q = ((1 - \<theta>) * eZ) powr q"
     by (simp add: mult.commute right_diff_distrib)
-  moreover have "... = (1 - \<theta>) powr q * eZ powr q"
+  also have "... = (1 - \<theta>) powr q * eZ powr q"
     by (simp add: \<open>0 \<le> eZ\<close> powr_mult t)
-  ultimately show ?thesis using 1 eZ_def q_def by force
+  finally show ?thesis using 1 eZ_def q_def by force
 qed
 
-corollary paley_zigmund:
+corollary paley_zygmund:
   assumes rv: "random_variable borel Z"
   assumes intZsq: "integrable M (\<lambda>z. (Z z)^2)"
   assumes t: "\<theta> \<le> 1"
@@ -145,7 +145,7 @@ proof -
   have " integrable M (\<lambda>z. \<bar>Z z\<bar> powr p)" unfolding p_def
     using intZsq by auto
 
-  from paley_zigmund_holder[OF p1 rv this t Zpos]
+  from paley_zygmund_holder[OF p1 rv this t Zpos]
   have "(1 - \<theta>) powr (p / (p - 1)) * (expectation Z powr (p / (p - 1)))
     \<le> expectation (\<lambda>x. \<bar>Z x - \<theta> * expectation Z\<bar> powr p) powr (1 / (p - 1)) *
        prob {z \<in> space M.  \<theta> * expectation Z < Z z}" .
