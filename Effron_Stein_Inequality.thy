@@ -248,7 +248,7 @@ proof -
   qed
 
   note meas_rules = borel_measurable_add borel_measurable_times borel_measurable_diff proj_meas
-    borel_measurable_power assms(3) measurable_restrict  measurable_compose[OF _ assms(3)]
+    borel_measurable_power assms(3) measurable_restrict measurable_compose[OF _ assms(3)]
 
   have "indep_vars ((M' \<circ> fst) \<circ> (\<lambda>i. (i, False))) (\<lambda>i. X (i, False)) I"
     by (intro indep_vars_reindex indep_vars_subset[OF assms(2)] inj_onI) auto

@@ -165,4 +165,81 @@ qed
 
 end
 
+text \<open>Integrability of bounded functions on finite measure spaces:\<close>
+
+lemma bounded_const: "bounded ((\<lambda>x. (c::real)) ` T)"
+  by (intro boundedI[where B="norm c"]) auto
+
+lemma bounded_exp:
+  fixes f :: "'a \<Rightarrow> real"
+  assumes "bounded ((\<lambda>x. f x) ` T)"
+  shows "bounded ((\<lambda>x. exp (f x)) ` T)"
+proof -
+  obtain m where "norm (f x) \<le> m" if "x \<in> T" for x
+    using assms unfolding bounded_iff by auto
+
+  thus ?thesis 
+    by (intro boundedI[where B="exp m"]) fastforce
+qed
+
+lemma bounded_mult_comp: 
+  fixes f :: "'a \<Rightarrow> real"
+  assumes "bounded (f ` T)" "bounded (g ` T)"
+  shows "bounded ((\<lambda>x. (f x) * (g x)) ` T)"
+proof -
+  obtain m1 where "norm (f x) \<le> m1" "m1 \<ge>0" if "x \<in> T" for x
+    using assms unfolding bounded_iff by fastforce
+  moreover obtain m2 where "norm (g x) \<le> m2" "m2 \<ge>0" if "x \<in> T" for x
+    using assms unfolding bounded_iff by fastforce
+
+  ultimately show ?thesis 
+    by (intro boundedI[where B="m1 * m2"]) (auto intro!: mult_mono simp:abs_mult)
+qed
+
+lemma bounded_sum:
+  fixes f :: "'i \<Rightarrow> 'a \<Rightarrow> real"
+  assumes "finite I"
+  assumes "\<And>i. i \<in> I \<Longrightarrow> bounded (f i ` T)"
+  shows "bounded ((\<lambda>x. (\<Sum>i \<in> I. f i x)) ` T)"
+  using assms by (induction I) (auto intro:bounded_plus_comp bounded_const)
+
+lemma (in finite_measure) bounded_int:
+  fixes f :: "'i \<Rightarrow> 'a \<Rightarrow> real"
+  assumes "bounded ((\<lambda> x. f (fst x) (snd x)) ` (T \<times> space M))"
+  shows "bounded ((\<lambda>x. (\<integral>\<omega>. (f x \<omega>) \<partial>M)) ` T)"
+proof -
+  obtain m where "\<And>x y. x \<in> T \<Longrightarrow> y \<in> space M \<Longrightarrow> norm (f x y) \<le> m" 
+    using assms unfolding bounded_iff by auto 
+  hence m:"\<And>x y. x \<in> T \<Longrightarrow> y \<in> space M \<Longrightarrow> norm (f x y) \<le> max m 0" 
+    by fastforce
+
+  have "norm (\<integral>\<omega>. (f x \<omega>) \<partial>M) \<le> max m 0 * measure M (space M)" (is "?L \<le> ?R") if "x \<in> T" for x
+  proof -
+    have "?L \<le> (\<integral>\<omega>. norm (f x \<omega>) \<partial>M)" by simp
+    also have "... \<le> (\<integral>\<omega>. max m 0 \<partial>M)"
+      using that m by (intro integral_mono') auto
+    also have "... = ?R"
+      by simp
+    finally show ?thesis by simp
+  qed
+  thus ?thesis
+    by (intro boundedI[where B="max m 0 * measure M (space M)"]) auto
+qed
+
+lemmas bounded_intros = 
+  bounded_minus_comp bounded_plus_comp bounded_mult_comp bounded_sum finite_measure.bounded_int 
+  bounded_const bounded_exp
+
+lemma (in prob_space) integrable_bounded:
+  fixes f :: "_ \<Rightarrow> ('b :: {banach,second_countable_topology})"
+  assumes "bounded (f ` space M)"
+  assumes "f \<in> M \<rightarrow>\<^sub>M borel"
+  shows "integrable M f"
+proof -
+  obtain m where "norm (f x) \<le> m" if "x \<in> space M" for x
+    using assms(1) unfolding bounded_iff by auto
+  thus ?thesis
+    by (intro integrable_const_bound[where B="m"] AE_I2 assms(2))
+qed
+
 end
