@@ -167,16 +167,15 @@ proof -
   ultimately show ?thesis by auto
 qed
 
-(* Helper lemma, starting with normalized zero-mean variables *)
+(* Helper lemma, starting with normalized variables *)
 lemma bennett_inequality_1:
   assumes I: "finite I"
   assumes ind: "indep_vars (\<lambda> _. borel) X I"
   assumes intsq: "\<And>i. i \<in> I \<Longrightarrow> integrable M (\<lambda>x. (X i x)^2)"
   assumes bnd: "\<And>i. i \<in> I \<Longrightarrow> AE x in M. X i x \<le> 1"
-  assumes e0: "\<And>i. i \<in> I \<Longrightarrow> expectation (X i) = 0"
   assumes t: "t \<ge> 0"
-  defines "V \<equiv> (\<Sum>i \<in> I. variance (X i))"
-  shows "prob {x \<in> space M. (\<Sum>i \<in> I. X i x) \<ge> t} \<le>
+  defines "V \<equiv> (\<Sum>i \<in> I. expectation(\<lambda>x. X i x^2))"
+  shows "prob {x \<in> space M. (\<Sum>i \<in> I. X i x - expectation (X i)) \<ge> t} \<le>
     exp (-V * bennett_h (t / V))"
 proof (cases "V = 0")
   case True
@@ -247,8 +246,9 @@ next
   qed
 
   (* Analyzing the expectation *)
-  then have *: "\<And>i. i \<in> I \<Longrightarrow> expectation (\<lambda>x. exp (l * X i x)) \<le>
-      exp(\<psi> l * expectation(\<lambda>x. X i x^2))"
+  then have *: "\<And>i. i \<in> I \<Longrightarrow>
+      expectation (\<lambda>x. exp (l * X i x)) \<le>
+      exp (l * expectation (X i)) * exp (\<psi> l * expectation (\<lambda>x. X i x^2))"
   proof -
     fix i
     assume iI: "i \<in> I"
@@ -260,39 +260,221 @@ next
       using iI intl intpsi apply auto[2]
       apply (subst Bochner_Integration.integral_add)
       using intl iI prob_space by auto
-    also have "... = 1 + expectation (\<lambda>x. \<psi> (l * X i x))"
-      using e0[OF iI] by auto
-    also have "... \<le> 1 + \<psi> l * expectation (\<lambda>x. X i x^2)"
-      using **[OF iI] by auto
-    also have "... \<le> exp (\<psi> l  * expectation (\<lambda>x. X i x^2))"
+    also have "... = l * expectation (X i) + 1 + expectation (\<lambda>x. \<psi> (l * X i x))"
       by auto
+    also have "... \<le> 1 + l * expectation (X i) + \<psi> l * expectation (\<lambda>x. X i x^2)"
+      using **[OF iI] by auto
+    also have "... \<le> exp (l * expectation (X i)) * exp (\<psi> l  * expectation (\<lambda>x. X i x^2))"
+      by (simp add: is_num_normalize(1) mult_exp_exp)
     finally show "expectation (\<lambda>x. exp (l * X i x)) \<le>
-      exp(\<psi> l * expectation(\<lambda>x. X i x^2))" .
+      exp (l * expectation (X i)) * exp (\<psi> l  * expectation (\<lambda>x. X i x^2))" .
   qed
 
-  have Veq: "V = (\<Sum>i \<in> I. expectation(\<lambda>x. X i x^2))"
-    unfolding V_def
-    using e0 by auto
-    
-  from indep_vars_Chernoff_ineq_ge[OF I ind l intexpl]
-  have "prob {x \<in> space M. (\<Sum>i \<in> I. X i x) \<ge> t} \<le> exp (- l * t) *
-     (\<Prod>i\<in>I. expectation (\<lambda>x. exp (l * (X i x))))"
-    using e0 by auto
-  also have "(\<Prod>i\<in>I. expectation (\<lambda>x. exp (l * (X i x)))) \<le>
-    (\<Prod>i\<in>I.  exp(\<psi> l * expectation(\<lambda>x. X i x^2)))"
-    by (auto intro: prod_mono simp add: *)
+  have "(\<Prod>i\<in>I. expectation (\<lambda>x. exp (l * (X i x)))) \<le>
+    (\<Prod>i\<in>I. exp (l * expectation (X i)) * exp (\<psi> l  * expectation (\<lambda>x. X i x^2)))"
+    by (auto intro!: prod_mono simp add: *)
   also have "... =
-    exp (\<psi> l * V)"
-    by (simp add: Veq I exp_sum sum_distrib_left)
-  finally have "prob {x \<in> space M. (\<Sum>i \<in> I. X i x) \<ge> t} \<le>
+    (\<Prod>i\<in>I. exp (l * expectation (X i))) * (\<Prod>i\<in>I. exp (\<psi> l  * expectation (\<lambda>x. X i x^2)))"
+    by (auto simp add: prod.distrib)
+  finally have **:
+    "(\<Prod>i\<in>I. expectation (\<lambda>x. exp (l * (X i x)))) \<le>
+    (\<Prod>i\<in>I. exp (l * expectation (X i))) * exp (\<psi> l * V)"
+    by (simp add: V_def I exp_sum sum_distrib_left)
+
+  from indep_vars_Chernoff_ineq_ge[OF I ind l intexpl]
+  have "prob {x \<in> space M. (\<Sum>i \<in> I. X i x - expectation (X i)) \<ge> t} \<le>
+    exp (- l * t) *
+     (\<Prod>i\<in>I. expectation (\<lambda>x. exp (l * (X i x - expectation (X i)))))"
+     by auto
+  also have "(\<Prod>i\<in>I. expectation (\<lambda>x. exp (l * (X i x - expectation (X i))))) =
+    (\<Prod>i\<in>I. expectation (\<lambda>x. exp (l * (X i x))) * exp (- l * expectation (X i)))"
+    by (auto intro!: prod.cong simp add: field_simps exp_diff exp_minus_inverse)
+  also have "... =
+     (\<Prod>i\<in>I. exp (- l * expectation (X i))) * (\<Prod>i\<in>I. expectation (\<lambda>x. exp (l * (X i x))))"
+    by (auto simp add: prod.distrib)
+  also have "... \<le>
+     (\<Prod>i\<in>I. exp (- l * expectation (X i))) * ((\<Prod>i\<in>I. exp (l * expectation (X i))) * exp (\<psi> l * V))"
+    apply (intro mult_left_mono[OF **])
+    by (meson exp_ge_zero prod_nonneg)
+  also have "... = exp (\<psi> l * V)"
+    apply (auto simp add: prod.distrib [symmetric])[1]
+    by (smt (verit, ccfv_threshold) exp_minus_inverse prod.not_neutral_contains_not_neutral)
+  finally have "
+    prob {x \<in> space M. (\<Sum>i \<in> I. X i x - expectation (X i)) \<ge> t} \<le>
     exp (\<psi> l * V - l * t)"
     by (simp add:mult_exp_exp)
-
   also have "\<psi> l * V - l * t = -V * bennett_h (t / V)"
     unfolding \<psi>_def l_def bennett_h_def
     apply (subst exp_ln)
     apply (auto simp add: algebra_simps)
     by (smt (verit) Vpos divide_nonneg_nonneg t)
+  finally show ?thesis .
+qed
+
+
+lemma real_AE_le_sum:
+  assumes "\<And>i. i \<in> I \<Longrightarrow> AE x in M. f i x \<le> (g i x::real)"
+  shows "AE x in M. (\<Sum>i\<in>I. f i x) \<le> (\<Sum>i\<in>I. g i x)"
+proof (cases)
+  assume "finite I"
+  have "i \<in> I \<Longrightarrow> \<exists>A. A \<in> null_sets M \<and> (\<forall>x\<in> (space M - A). f i x \<le> g i x)" for i
+    using assms(1)[of i] by (metis (mono_tags, lifting) AE_E3)
+  then obtain A where A: "\<And>i. i \<in> I \<Longrightarrow> A i \<in> null_sets M \<and> (\<forall>x\<in> (space M -A i). f i x \<le> g i x)"
+    by metis
+  define B where "B = (\<Union>i\<in>I. A i)"
+  have "B \<in> null_sets M" using \<open>finite I\<close> A B_def by blast
+  then have "AE x in M. x \<in> space M - B" by (simp add: AE_not_in)
+  moreover
+  {
+    fix x assume "x \<in> space M - B"
+    then have "\<And>i. i \<in> I \<Longrightarrow> f i x \<le> g i x" unfolding B_def using A by auto
+    then have "(\<Sum>i\<in>I. f i x) \<le> (\<Sum>i\<in>I. g i x)"
+      by (auto intro!:sum_mono)
+  }
+  ultimately show ?thesis by auto
+qed (simp)
+
+lemma bennett_inequality:
+  assumes I: "finite I"
+  assumes ind: "indep_vars (\<lambda> _. borel) X I"
+  assumes intsq: "\<And>i. i \<in> I \<Longrightarrow> integrable M (\<lambda>x. (X i x)^2)"
+  assumes bnd: "\<And>i. i \<in> I \<Longrightarrow> AE x in M. X i x \<le> B"
+  assumes B: "B > 0"
+  assumes t: "t \<ge> 0"
+  defines "V \<equiv> (\<Sum>i \<in> I. expectation (\<lambda>x. X i x^2))"
+  shows "prob {x \<in> space M. (\<Sum>i \<in> I. X i x - expectation (X i)) \<ge> t} \<le>
+    exp (- V / B^2 * bennett_h (t * B / V))"
+proof -
+  define Y where "Y = (\<lambda>i x. X i x / B)"
+
+  from indep_vars_compose[OF ind, where Y = "\<lambda>i x. x/ B"]
+  have 1: "indep_vars (\<lambda>_. borel) Y I"
+    unfolding Y_def by (auto simp add: o_def)
+  have 2: "\<And>i. i \<in> I \<Longrightarrow> integrable M (\<lambda>x. (Y i x)\<^sup>2)"
+    unfolding Y_def apply (drule intsq)
+    by (auto simp add: field_simps)
+  have 3: "\<And>i. i \<in> I \<Longrightarrow> AE x in M. Y i x \<le> 1"
+    unfolding Y_def apply (drule bnd)
+    using B by auto
+  have 4:"0 \<le> t / B" using t B by auto
+
+  have rw1: "(\<Sum>i\<in>I. Y i x - expectation (Y i)) =
+    (\<Sum>i\<in>I. X i x - expectation (X i)) / B" for x
+    unfolding Y_def
+    apply auto
+    by (simp add: diff_divide_distrib sum_divide_distrib)
+
+  have rw2: "expectation (\<lambda>x. (Y i x)\<^sup>2) =
+    expectation (\<lambda>x. (X i x)\<^sup>2) / B^2" for i
+    unfolding Y_def
+    by (simp add: power_divide)
+
+  have rw3:"- (\<Sum>i\<in>I. expectation (\<lambda>x. (X i x)\<^sup>2) / B^2) = - V / B^2"
+    unfolding V_def
+    by (auto simp add: sum_divide_distrib)
+  
+  have "t / B / (\<Sum>i\<in>I. expectation (\<lambda>x. (X i x)\<^sup>2) / B^2) =
+    t / B / (V / B^2)"
+    unfolding V_def
+    by (auto simp add: sum_divide_distrib)
+  then have rw4: "t / B / (\<Sum>i\<in>I. expectation (\<lambda>x. (X i x)\<^sup>2) / B^2) =
+      t * B / V"
+      by (simp add: power2_eq_square)
+  have "prob {x \<in> space M. t \<le> (\<Sum>i\<in>I. X i x - expectation (X i))} =
+    prob{x \<in> space M. t / B \<le> (\<Sum>i\<in>I. X i x - expectation (X i)) / B}"
+    by (smt (verit, best) B Collect_cong divide_cancel_right divide_right_mono)
+  also have "... \<le>
+    exp (- V / B\<^sup>2 *
+          bennett_h (t * B / V))"
+    using bennett_inequality_1[OF I 1 2 3 4]
+    unfolding rw1 rw2 rw3 rw4 .
+  finally show ?thesis .
+qed
+
+lemma bennett_h_bernstein_bound:
+  assumes "x \<ge> 0"
+  shows "bennett_h x \<ge> x^2 / (2 * (1 + x / 3))"
+proof -
+  have eq:"x^2 / (2 * (1 + x / 3)) = 3/2 * x - 9/2 * (x / (x+3))"
+    using assms
+    by (sos "(() & ())")
+
+  define g where "g = (\<lambda>x. bennett_h x - (3/2 * x - 9/2 * (x / (x+3))))"
+
+  define g' where "g' = (\<lambda>x::real.
+    ln(1 + x) +  27 / (2 * (x+3)^2) - 3 / 2)"
+  define g'' where "g'' = (\<lambda>x::real.
+      1 / (1 + x) - 27  / (x+3)^3)"
+  have 1: "x \<ge> 0 \<Longrightarrow> (g has_real_derivative (g' x)) (at x)" for x
+    unfolding g_def g'_def bennett_h_def
+    apply (auto intro!: derivative_eq_intros)[1]
+    by (sos "(((R<1 + (([~1/20] * A=0) + ((R<1 * ((R<4/5 * [3/8*xa__ + 1]^2) + (R<7/80 * [xa__]^2))) + ((A<=0 * R<1) * (R<3/5 * [1]^2)))))) & (() & ()))")
+  have 2: "x \<ge> 0 \<Longrightarrow> (g' has_real_derivative (g'' x)) (at x)" for x
+    unfolding g'_def g''_def
+    apply (auto intro!: derivative_eq_intros)[1]
+    by (sos "(() & ())")
+  
+  have gz: "g 0 = 0"
+    unfolding g_def bennett_h_def by auto
+  have g1z: "g' 0 = 0"
+    unfolding g'_def by auto
+
+  have p2: "x \<ge> 0 \<Longrightarrow> g'' x  \<ge> 0" for x
+    unfolding g''_def
+    apply (auto simp add: field_simps)
+    by (sos "(((((A<0 * A<1) * R<1) + (((A<0 * R<1) * (R<9 * [xa__]^2)) + ((A<=0 * (A<0 * R<1)) * (R<1 * [xa__]^2))))) & ((((A<0 * A<1) * R<1) + (((A<1 * R<1) * ((R<27 * [5/27*xa__^2 + 79/81*xa__ + 1]^2) + ((R<77/243 * [30/77*xa__^2 + xa__]^2) + (R<2/77 * [xa__^2]^2)))) + ((A<=0 * (A<1 * R<1)) * (R<4/3 * [1]^2))))))")
+  
+  from deriv_nonneg_imp_mono[OF 2 p2 _]
+  have "x \<ge> 0 \<Longrightarrow> g' x \<ge> 0" for x using g1z
+    by (metis atLeastAtMost_iff)
+
+  from deriv_nonneg_imp_mono[OF 1 this _]
+  have "x \<ge> 0 \<Longrightarrow> g x \<ge> 0" for x using gz
+    by (metis atLeastAtMost_iff)
+
+  thus ?thesis
+  using assms eq g_def by force
+qed
+
+(* not sure if V > 0 is necessary here *)
+corollary bernstein_inequality:
+  assumes I: "finite I"
+  assumes ind: "indep_vars (\<lambda> _. borel) X I"
+  assumes intsq: "\<And>i. i \<in> I \<Longrightarrow> integrable M (\<lambda>x. (X i x)^2)"
+  assumes bnd: "\<And>i. i \<in> I \<Longrightarrow> AE x in M. X i x \<le> B"
+  assumes B: "B > 0"
+  assumes t: "t \<ge> 0"
+  defines "V \<equiv> (\<Sum>i \<in> I. expectation (\<lambda>x. X i x^2))"
+  assumes V: "V > 0"
+  shows "prob {x \<in> space M. (\<Sum>i \<in> I. X i x - expectation (X i)) \<ge> t} \<le>
+    exp (- (t^2 / (2 * (V + t * B / 3))))"
+proof -
+
+  have "t * B / V \<ge> 0" using t B V by auto
+  from bennett_h_bernstein_bound[OF this]
+  have "(t * B / V)\<^sup>2 / (2 * (1 + t * B / V / 3))
+    \<le> bennett_h (t * B / V)" .
+
+  then have "(- V / B^2) * bennett_h (t * B / V) \<le>
+    (- V / B^2) * ((t * B / V)\<^sup>2 / (2 * (1 + t * B / V / 3)))"
+    apply (subst mult_left_mono_neg)
+    using B V by auto
+  also have "... =
+     ((- V / B^2) * (t * B / V)\<^sup>2) / (2 * (1 + t * B / V / 3))"
+    by auto
+  also have " ((- V / B^2) * (t * B / V)\<^sup>2) = -(t^2) / V"
+    using V B by (auto simp add: field_simps power2_eq_square)
+  finally have *: "(- V / B^2) * bennett_h (t * B / V) \<le>
+     -(t^2)  / (2 * (V + t * B  / 3))"
+    using V by (auto simp add: field_simps)
+
+  from bennett_inequality[OF assms(1-6)]
+  have "prob {x \<in> space M. (\<Sum>i \<in> I. X i x - expectation (X i)) \<ge> t} \<le>
+    exp (- V / B^2 * bennett_h (t * B / V))"
+    using V_def by auto
+  also have "... \<le> exp (- (t^2/ (2 * (V + t * B  / 3))))"
+    using *
+    by auto
   finally show ?thesis .
 qed
 
