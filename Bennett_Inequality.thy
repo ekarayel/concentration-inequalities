@@ -311,7 +311,7 @@ next
   finally show ?thesis .
 qed
 
-
+(* following AE_equal_sum *)
 lemma real_AE_le_sum:
   assumes "\<And>i. i \<in> I \<Longrightarrow> AE x in M. f i x \<le> (g i x::real)"
   shows "AE x in M. (\<Sum>i\<in>I. f i x) \<le> (\<Sum>i\<in>I. g i x)"
@@ -334,13 +334,31 @@ proof (cases)
   ultimately show ?thesis by auto
 qed (simp)
 
+lemma real_AE_eq_sum:
+  assumes "\<And>i. i \<in> I \<Longrightarrow> AE x in M. f i x = (g i x::real)"
+  shows "AE x in M. (\<Sum>i\<in>I. f i x) = (\<Sum>i\<in>I. g i x)"
+proof -
+  have 1: "AE x in M. (\<Sum>i\<in>I. f i x) \<le> (\<Sum>i\<in>I. g i x)"
+    apply (intro real_AE_le_sum)
+    apply (drule assms)
+    by auto
+  have 2: "AE x in M. (\<Sum>i\<in>I. g i x) \<le> (\<Sum>i\<in>I. f i x)"
+    apply (intro real_AE_le_sum)
+    apply (drule assms)
+    by auto
+  show ?thesis
+    using 1 2 
+    by auto
+qed
+
+(* B = 0 case trivial *)
 lemma bennett_inequality:
   assumes I: "finite I"
   assumes ind: "indep_vars (\<lambda> _. borel) X I"
   assumes intsq: "\<And>i. i \<in> I \<Longrightarrow> integrable M (\<lambda>x. (X i x)^2)"
   assumes bnd: "\<And>i. i \<in> I \<Longrightarrow> AE x in M. X i x \<le> B"
-  assumes B: "B > 0"
   assumes t: "t \<ge> 0"
+  assumes B: "B > 0"
   defines "V \<equiv> (\<Sum>i \<in> I. expectation (\<lambda>x. X i x^2))"
   shows "prob {x \<in> space M. (\<Sum>i \<in> I. X i x - expectation (X i)) \<ge> t} \<le>
     exp (- V / B^2 * bennett_h (t * B / V))"
@@ -436,20 +454,66 @@ proof -
   using assms eq g_def by force
 qed
 
-(* not sure if V > 0 is necessary here *)
+lemma sum_sq_exp_eq_zero_imp_zero:
+  assumes "finite I" "i \<in> I"
+  assumes intsq: "integrable M (\<lambda>x. (X i x)^2)"
+  assumes "(\<Sum>i \<in> I. expectation (\<lambda>x. X i x^2)) = 0"
+  shows "AE x in M. X i x = (0::real)"
+proof -
+  have "(\<forall>i \<in>I. expectation (\<lambda>x. X i x^2) = 0)"
+    using assms
+    apply (subst sum_nonneg_eq_0_iff[symmetric])
+    by auto
+  then have "expectation (\<lambda>x. X i x^2) = 0" 
+    using assms(2) by blast
+  thus ?thesis
+    using integral_nonneg_eq_0_iff_AE[OF intsq]
+    by auto
+qed
+
 corollary bernstein_inequality:
   assumes I: "finite I"
   assumes ind: "indep_vars (\<lambda> _. borel) X I"
   assumes intsq: "\<And>i. i \<in> I \<Longrightarrow> integrable M (\<lambda>x. (X i x)^2)"
   assumes bnd: "\<And>i. i \<in> I \<Longrightarrow> AE x in M. X i x \<le> B"
-  assumes B: "B > 0"
   assumes t: "t \<ge> 0"
+  assumes B: "B > 0"
   defines "V \<equiv> (\<Sum>i \<in> I. expectation (\<lambda>x. X i x^2))"
-  assumes V: "V > 0"
   shows "prob {x \<in> space M. (\<Sum>i \<in> I. X i x - expectation (X i)) \<ge> t} \<le>
     exp (- (t^2 / (2 * (V + t * B / 3))))"
-proof -
+proof (cases "V = 0")
+  case True
+  then have 1:"\<And>i. i \<in> I \<Longrightarrow> AE x in M. X i x = 0"
+    unfolding V_def
+    using sum_sq_exp_eq_zero_imp_zero
+    by (metis I intsq)
+  then have 2:"\<And>i. i \<in> I \<Longrightarrow> expectation (X i) = 0"
+    using integral_eq_zero_AE by blast
 
+  have "AE x in M. (\<Sum>i \<in> I. X i x - expectation (X i)) = (\<Sum>i \<in> I. 0)"
+      apply (intro real_AE_eq_sum)
+      using 1 2
+      by auto
+  then have *: "AE x in M. (\<Sum>i \<in> I. X i x - expectation (X i)) = 0"
+    by force
+
+  moreover {
+    assume "t > 0"
+    then have "prob {x \<in> space M. (\<Sum>i \<in> I. X i x - expectation (X i)) \<ge> t} = 0"
+      apply (intro prob_eq_0_AE)
+      using * by auto
+    then have ?thesis by auto
+  }
+  ultimately show ?thesis
+    apply (cases "t = 0") using t by auto
+next
+  case f: False
+  have "V \<ge> 0"
+    unfolding V_def
+    apply (intro sum_nonneg  integral_nonneg_AE)
+    by auto
+  then have V: "V > 0" using f by auto
+    
   have "t * B / V \<ge> 0" using t B V by auto
   from bennett_h_bernstein_bound[OF this]
   have "(t * B / V)\<^sup>2 / (2 * (1 + t * B / V / 3))
