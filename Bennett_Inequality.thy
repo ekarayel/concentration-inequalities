@@ -75,8 +75,7 @@ lemma exp_sub_two_terms_eq:
     "summable (\<lambda>n. x^(n+2) / fact (n+2))"
 proof -
   have "(\<Sum>i<2. inverse (fact i) * x ^ i) = 1 + x"
-    apply code_simp
-    by auto
+    by (simp add:numeral_eq_Suc) 
   thus "exp x - x - 1 = (\<Sum>n. x^(n+2) / fact (n+2))"
     unfolding exp_def
     apply (subst suminf_split_initial_segment[where k = 2])
@@ -317,22 +316,9 @@ lemma real_AE_le_sum:
   shows "AE x in M. (\<Sum>i\<in>I. f i x) \<le> (\<Sum>i\<in>I. g i x)"
 proof (cases)
   assume "finite I"
-  have "i \<in> I \<Longrightarrow> \<exists>A. A \<in> null_sets M \<and> (\<forall>x\<in> (space M - A). f i x \<le> g i x)" for i
-    using assms(1)[of i] by (metis (mono_tags, lifting) AE_E3)
-  then obtain A where A: "\<And>i. i \<in> I \<Longrightarrow> A i \<in> null_sets M \<and> (\<forall>x\<in> (space M -A i). f i x \<le> g i x)"
-    by metis
-  define B where "B = (\<Union>i\<in>I. A i)"
-  have "B \<in> null_sets M" using \<open>finite I\<close> A B_def by blast
-  then have "AE x in M. x \<in> space M - B" by (simp add: AE_not_in)
-  moreover
-  {
-    fix x assume "x \<in> space M - B"
-    then have "\<And>i. i \<in> I \<Longrightarrow> f i x \<le> g i x" unfolding B_def using A by auto
-    then have "(\<Sum>i\<in>I. f i x) \<le> (\<Sum>i\<in>I. g i x)"
-      by (auto intro!:sum_mono)
-  }
-  ultimately show ?thesis by auto
-qed (simp)
+  with AE_finite_allI[OF this assms] have 0:"AE x in M. (\<forall>i\<in>I. f i x \<le> g i x)" by auto
+  show ?thesis by (intro eventually_mono[OF 0] sum_mono) auto
+qed simp
 
 lemma real_AE_eq_sum:
   assumes "\<And>i. i \<in> I \<Longrightarrow> AE x in M. f i x = (g i x::real)"
@@ -379,8 +365,7 @@ proof -
   have rw1: "(\<Sum>i\<in>I. Y i x - expectation (Y i)) =
     (\<Sum>i\<in>I. X i x - expectation (X i)) / B" for x
     unfolding Y_def
-    apply auto
-    by (simp add: diff_divide_distrib sum_divide_distrib)
+    by (auto simp: diff_divide_distrib sum_divide_distrib)
 
   have rw2: "expectation (\<lambda>x. (Y i x)\<^sup>2) =
     expectation (\<lambda>x. (X i x)\<^sup>2) / B^2" for i
@@ -423,10 +408,17 @@ proof -
     ln(1 + x) +  27 / (2 * (x+3)^2) - 3 / 2)"
   define g'' where "g'' = (\<lambda>x::real.
       1 / (1 + x) - 27  / (x+3)^3)"
-  have 1: "x \<ge> 0 \<Longrightarrow> (g has_real_derivative (g' x)) (at x)" for x
-    unfolding g_def g'_def bennett_h_def
-    apply (auto intro!: derivative_eq_intros)[1]
-    by (sos "(((R<1 + (([~1/20] * A=0) + ((R<1 * ((R<4/5 * [3/8*xa__ + 1]^2) + (R<7/80 * [xa__]^2))) + ((A<=0 * R<1) * (R<3/5 * [1]^2)))))) & (() & ()))")
+
+  have "54 / ((2 * x + 6)^2) = 27 / (2 * (x + 3)\<^sup>2)" (is "?L = ?R") for x :: real 
+  proof -
+    have "?L = 54 / (2^2 * (x + 3)^2)" 
+      unfolding power_mult_distrib[symmetric] by (simp add:algebra_simps)
+    also have "... = ?R" by simp
+    finally show ?thesis by simp
+  qed
+
+  hence 1: "x \<ge> 0 \<Longrightarrow> (g has_real_derivative (g' x)) (at x)" for x
+    unfolding g_def g'_def bennett_h_def by (auto intro!: derivative_eq_intros simp:power2_eq_square)
   have 2: "x \<ge> 0 \<Longrightarrow> (g' has_real_derivative (g'' x)) (at x)" for x
     unfolding g'_def g''_def
     apply (auto intro!: derivative_eq_intros)[1]
@@ -437,10 +429,14 @@ proof -
   have g1z: "g' 0 = 0"
     unfolding g'_def by auto
 
-  have p2: "x \<ge> 0 \<Longrightarrow> g'' x  \<ge> 0" for x
-    unfolding g''_def
-    apply (auto simp add: field_simps)
-    by (sos "(((((A<0 * A<1) * R<1) + (((A<0 * R<1) * (R<9 * [xa__]^2)) + ((A<=0 * (A<0 * R<1)) * (R<1 * [xa__]^2))))) & ((((A<0 * A<1) * R<1) + (((A<1 * R<1) * ((R<27 * [5/27*xa__^2 + 79/81*xa__ + 1]^2) + ((R<77/243 * [30/77*xa__^2 + xa__]^2) + (R<2/77 * [xa__^2]^2)))) + ((A<=0 * (A<1 * R<1)) * (R<4/3 * [1]^2))))))")
+  have p2: "g'' x  \<ge> 0" if "x \<ge> 0" for x
+  proof -
+    have "27 * (1+x) \<le> (x+3)^3"
+      using that unfolding power3_eq_cube by (auto simp:algebra_simps)
+    hence " 27 / (x + 3) ^ 3 \<le> 1 / (1+x)"
+      using that by (subst frac_le_eq) (auto intro!:divide_nonpos_pos)
+    thus ?thesis unfolding g''_def by simp
+  qed
   
   from deriv_nonneg_imp_mono[OF 2 p2 _]
   have "x \<ge> 0 \<Longrightarrow> g' x \<ge> 0" for x using g1z
