@@ -3,8 +3,9 @@ theory McDiarmid_Inequality
 begin
 
 lemma Collect_restr_cong:
+  assumes "A = B"
   assumes "\<And>x. x \<in> A \<Longrightarrow> P x = Q x"
-  shows "{x \<in> A. P x} = {x \<in> A. Q x}"
+  shows "{x \<in> A. P x} = {x \<in> B. Q x}"
   using assms by auto
 
 lemma ineq_chain:
@@ -18,6 +19,9 @@ lemma restrict_subset_eq:
   assumes "restrict f B = restrict g B"
   shows "restrict f A = restrict g A"
   using assms unfolding restrict_def by (meson subsetD)
+
+text \<open>Bochner Integral version of 
+  @{thm [source] interval_bounded_random_variable.Hoeffdings_lemma_nn_integral_0}\<close>
 
 lemma (in prob_space) Hoeffdings_lemma_bochner:
   assumes "l > 0" and E0: "expectation f = 0"
@@ -58,38 +62,26 @@ proof -
   define a :: real where "a = (INF x \<in> space M. f x)"
   define b :: real where "b = a+c"
 
-  obtain \<omega> where \<omega>:"\<omega> \<in> space M"
-    using not_empty by auto
-
-  hence 1:"f ` space M \<noteq> {}"
-    by auto
-
-  have 0: "c = b - a"
-    unfolding b_def by simp
+  obtain \<omega> where \<omega>:"\<omega> \<in> space M" using not_empty by auto
+  hence 0:"f ` space M \<noteq> {}" by auto
+  have 1: "c = b - a" unfolding b_def by simp
 
   have "bdd_below (f ` space M)"
     using \<omega> assms(4) unfolding abs_le_iff 
     by (intro bdd_belowI[where m="f \<omega> - c"]) (auto simp add:algebra_simps)
-
-  hence "f x \<ge> a" if "x \<in> space M" for x
-    unfolding a_def by (intro cINF_lower that)
-
+  hence "f x \<ge> a" if "x \<in> space M" for x unfolding a_def by (intro cINF_lower that)
   moreover have "f x \<le> b" if x_space: "x \<in> space M" for x
   proof (rule ccontr)
     assume "\<not>(f x \<le> b)"
     hence a:"f x > a + c" unfolding b_def by simp
     have "f y \<ge> f x - c" if "y \<in> space M" for y
       using that x_space assms(4) unfolding abs_le_iff by (simp add:algebra_simps)
-    hence "f x - c \<le> a"
-      unfolding a_def using cInf_greatest[OF 1] by auto
+    hence "f x - c \<le> a" unfolding a_def using cInf_greatest[OF 0] by auto
     thus "False" using a by simp
   qed
-  ultimately have "f x \<in> {a..b}" if "x \<in> space M" for x
-    using that by auto
-  hence "AE x in M. f x \<in> {a..b}"
-    by simp
-  thus ?thesis
-    unfolding 0 by (intro Hoeffdings_lemma_bochner assms(1,2,3))
+  ultimately have "f x \<in> {a..b}" if "x \<in> space M" for x using that by auto
+  hence "AE x in M. f x \<in> {a..b}" by simp
+  thus ?thesis unfolding 1 by (intro Hoeffdings_lemma_bochner assms(1,2,3))
 qed
 
 lemma (in prob_space) Hoeffdings_lemma_bochner_3:
@@ -102,16 +94,13 @@ proof -
     by argo
   then show ?thesis
   proof (cases)
-    case a
-    then show ?thesis by (intro Hoeffdings_lemma_bochner_2 assms) auto 
+    case a thus ?thesis by (intro Hoeffdings_lemma_bochner_2 assms) auto 
   next
-    case b
-    then show ?thesis by simp
+    case b thus ?thesis by simp
   next
     case c
     have "?L = expectation (\<lambda>x. exp ((-l) * (-f x)))" by simp
-    also have "... \<le> exp ((-l)^2 * c^2 / 8)"
-      using c assms by (intro Hoeffdings_lemma_bochner_2) auto
+    also have "... \<le> exp ((-l)^2 * c\<^sup>2/8)" using c assms by (intro Hoeffdings_lemma_bochner_2) auto
     also have "... = ?R" by simp
     finally show ?thesis by simp
   qed
@@ -138,10 +127,8 @@ proof -
     using assms(2) by (intro product_integral_singleton) (simp add:M'_def)
   also have "... = ?R"
     by (intro Bochner_Integration.integral_cong PiM_cong) (simp_all add:M'_def)
-  finally show ?thesis 
-    by simp
+  finally show ?thesis by simp
 qed
-
 
 text \<open>Version of @{thm [source] product_sigma_finite.product_integral_fold} without the 
 condition that @{term "M i"} has to be sigma finite for all @{term "i"}:\<close>
@@ -155,7 +142,7 @@ lemma product_integral_fold:
   assumes "integrable (PiM (I \<union> J) M) f"
   shows "(\<integral>x. f x \<partial>PiM (I \<union> J) M) = (\<integral>x. (\<integral>y. f (merge I J(x,y)) \<partial>PiM J M) \<partial>PiM I M)" (is "?L = ?R")
     and "integrable (PiM I M) (\<lambda>x. (\<integral>y. f (merge I J(x,y)) \<partial>PiM J M))" (is "?I")
-    (* TODO: and "AE x in PiM I M. integrable (PiM J M) (\<lambda>y. f (merge I J(x,y)))" (is "?T") *)
+    and "AE x in PiM I M. integrable (PiM J M) (\<lambda>y. f (merge I J(x,y)))" (is "?T")
 proof -
   define M' where "M' i = (if i \<in> I \<union> J then M i else count_space {undefined})" for i
 
@@ -180,7 +167,7 @@ proof -
   have "integrable (Pi\<^sub>M (I \<union> J) M') f = integrable (PiM I M' \<Otimes>\<^sub>M PiM J M') (\<lambda>x. f (merge I J x))" 
     using assms(5) apply (subst distr_merge[OF assms(2,3,4),symmetric])
     by (intro integrable_distr_eq) (simp_all add:0[symmetric])
-  hence "integrable (PiM I M' \<Otimes>\<^sub>M PiM J M') (\<lambda>x. f (merge I J x))"
+  hence 1:"integrable (PiM I M' \<Otimes>\<^sub>M PiM J M') (\<lambda>x. f (merge I J x))"
     using assms(5) 0 by simp
 
   hence "integrable (PiM I M') (\<lambda>x. (\<integral>y. f (merge I J(x,y)) \<partial>PiM J M'))" (is "?I'")
@@ -188,7 +175,15 @@ proof -
   moreover have "?I' = ?I"
     by (intro Bochner_Integration.integrable_cong PiM_cong ext Bochner_Integration.integral_cong)
      (simp_all add:M'_def)
-  finally show "?I"
+  ultimately show "?I"
+    by simp
+
+  have "AE x in Pi\<^sub>M I M'. integrable (Pi\<^sub>M J M') (\<lambda>y. f (merge I J (x, y)))" (is "?T'")
+    by (intro AE_integrable_fst'[OF 1])
+  moreover have "?T' = ?T"
+    by (intro arg_cong2[where f="almost_everywhere"] PiM_cong ext Bochner_Integration.integrable_cong)
+     (simp_all add:M'_def)
+  ultimately show  "?T"
     by simp
 qed
 
@@ -211,8 +206,7 @@ proof -
      (auto simp add:space_PiM merge_def fun_upd_def PiE_def extensional_def)
   have "(\<lambda>x. (\<integral>y. f (y(i := (\<lambda>i\<in>{i}. x) i)) \<partial>PiM J M)) \<in> borel_measurable (M i)"
     by (intro measurable_compose[OF _ 1, where f="(\<lambda>x. (\<lambda>i\<in>{i}. x))"] measurable_restrict) auto
-  hence 2:"(\<lambda>x. (\<integral>y. f (y(i := x )) \<partial>PiM J M)) \<in> borel_measurable (M i)"
-    by simp
+  hence 2:"(\<lambda>x. (\<integral>y. f (y(i := x )) \<partial>PiM J M)) \<in> borel_measurable (M i)" by simp
   
   have "?L = (\<integral>x. f x \<partial>PiM ({i} \<union> J) M)" by simp
   also have "... = (\<integral>x. (\<integral>y. f (merge {i} J (x,y)) \<partial>PiM J M) \<partial>PiM {i} M)"
@@ -222,8 +216,7 @@ proof -
      (auto simp add:space_PiM merge_def fun_upd_def PiE_def extensional_def)
   also have "... = ?R"
     using assms(1,4) by (intro product_integral_singleton assms(1) 2) auto
-  finally show ?thesis
-    by simp
+  finally show ?thesis by simp
 qed
 
 lemma product_integral_insert_rev:
@@ -268,8 +261,6 @@ lemma map_prod_measurable:
   shows "map_prod f g \<in> M \<Otimes>\<^sub>M N \<rightarrow>\<^sub>M M' \<Otimes>\<^sub>M N'"
   using assms by (subst measurable_pair_iff) simp
 
-find_theorems "prob_space ?M \<Longrightarrow> finite_measure ?M"
-
 lemma mc_diarmid_inequality_aux:
   fixes f :: "(nat \<Rightarrow> 'a) \<Rightarrow> real"
   fixes n :: nat
@@ -303,15 +294,12 @@ proof -
   have c_ge_0: "c j \<ge> 0" if "j < n" for j
   proof -
     have "0 \<le> \<bar>f x0 - f x0\<bar>" by simp
-    also have "... \<le> c j"
-      using x0 unfolding space_PiM by (intro delta that) auto
+    also have "... \<le> c j" using x0 unfolding space_PiM by (intro delta that) auto
     finally show ?thesis by simp
   qed
-  hence pre: "(\<Sum>i<n. (c i)^2) \<ge> 0"
-    by (meson sum_nonneg zero_le_power2)
+  hence sum_c_ge_0: "(\<Sum>i<n. (c i)^2) \<ge> 0" by (meson sum_nonneg zero_le_power2)
 
-  have t_ge_0: "t \<ge> 0"
-    using \<epsilon>_gt_0 pre unfolding t_def by simp
+  hence t_ge_0: "t \<ge> 0" using \<epsilon>_gt_0 unfolding t_def by simp
 
   note borel_rules =
     borel_measurable_sum measurable_compose[OF _ borel_measurable_exp]
@@ -319,8 +307,7 @@ proof -
 
   note int_rules =
     prob_space_PiM assms(1) borel_rules
-    prob_space.integrable_bounded bounded_intros 
-
+    prob_space.integrable_bounded bounded_intros
   have h_n: "h n \<xi> = f \<xi>" if "\<xi> \<in> space (PiM {..<n} M)" for \<xi> 
   proof -
     have "h n \<xi> = (\<integral>\<omega>. f (\<lambda>i\<in>{..<n}. \<xi> i) \<partial>PiM {} M)"
@@ -378,7 +365,6 @@ proof -
     if "j \<le> n" "u \<in> PiE {..<j} (\<lambda>i. space (M i))" "v \<in> PiE {j..<n} (\<lambda>i. space (M i))"
     for u v j
     using that by (intro merge_space_aux) (simp_all add:PiE_def) 
-
 
   have delta': "\<bar>f x - f y\<bar> \<le> (\<Sum>i<n. c i)"  
     if "x \<in> PiE {..<n} (\<lambda>i. space (M i))" "y \<in> PiE {..<n} (\<lambda>i. space (M i))" for x y
@@ -554,7 +540,7 @@ proof -
     have x_ran: "x \<in> PiE {..<j+1} (\<lambda>i. space (M i))" and y_ran: "y \<in> PiE {..<j+1} (\<lambda>i. space (M i))"
       using that(2) by (simp_all add:space_PiM)
 
-    have 1: "j+1 \<le> n"
+    have 0: "j+1 \<le> n"
       using that by simp
 
     have "?L1 = \<bar>h (Suc j) x - h j y - (h (Suc j) y - h j y)\<bar>"
@@ -563,13 +549,13 @@ proof -
       by simp
     also have "... = 
       \<bar>(\<integral>\<omega>. f(merge {..<j+1} {j+1..<n} (x,\<omega>))-f(merge {..<j+1} {j+1..<n} (y,\<omega>)) \<partial>PiM {j+1..<n} M)\<bar>"
-      using that unfolding h_def by (intro arg_cong[where f="abs"] f_merge_meas[OF 1] x_ran
-          Bochner_Integration.integral_diff[symmetric] int_rules f_merge_bounded[OF 1] y_ran) auto
+      using that unfolding h_def by (intro arg_cong[where f="abs"] f_merge_meas[OF 0] x_ran
+          Bochner_Integration.integral_diff[symmetric] int_rules f_merge_bounded[OF 0] y_ran) auto
     also have "... \<le> 
       (\<integral>\<omega>. \<bar>f(merge {..<j+1} {j+1..<n} (x,\<omega>))-f(merge {..<j+1} {j+1..<n} (y,\<omega>))\<bar> \<partial>PiM {j+1..<n} M)"
       by (intro integral_abs_bound)
     also have "... \<le> (\<integral>\<omega>. c j \<partial>PiM {j+1..<n} M)"
-    proof (intro Bochner_Integration.integral_mono' delta int_rules c_ge_0 ballI merge_space 1)
+    proof (intro Bochner_Integration.integral_mono' delta int_rules c_ge_0 ballI merge_space 0)
       fix \<omega> assume "\<omega> \<in> space (Pi\<^sub>M {j + 1..<n} M)" 
       have "{..<j + 1} \<inter> ({..<n} - {j}) = {..<j}"
         using that by auto
@@ -582,13 +568,10 @@ proof -
     finally show ?thesis by simp
   qed
 
-  have 0: "f \<xi> - (\<integral>\<omega>. f \<omega> \<partial>(PiM {..<n} M)) = (\<Sum>i < n. V i \<xi>)" if "\<xi> \<in> space (PiM {..<n} M)" for \<xi>
+  have "f \<xi> - (\<integral>\<omega>. f \<omega> \<partial>(PiM {..<n} M)) = (\<Sum>i < n. V i \<xi>)" if "\<xi> \<in> space (PiM {..<n} M)" for \<xi>
     using that unfolding V_def by (subst sum_lessThan_telescope) (simp add: h_0 h_n)
-
-  find_theorems "{x \<in> space ?M. ?P x} \<in> sets ?M"
-
-  have "?L = \<P>(\<xi> in PiM {..<n} M. (\<Sum>i < n. V i \<xi>) \<ge> \<epsilon>)"
-    by (intro arg_cong2[where f="measure"] refl Collect_restr_cong arg_cong2[where f="(\<le>)"] 0)
+  hence "?L = \<P>(\<xi> in PiM {..<n} M. (\<Sum>i < n. V i \<xi>) \<ge> \<epsilon>)"
+    by (intro arg_cong2[where f="measure"] refl Collect_restr_cong arg_cong2[where f="(\<le>)"]) auto
   also have "... \<le> \<P>(\<xi> in PiM {..<n} M. exp( t * (\<Sum>i < n. V i \<xi>) ) \<ge> exp (t * \<epsilon>))"
   proof (intro finite_measure.finite_measure_mono subsetI prob_space.finite_measure int_rules)
     show "{\<xi> \<in> space (Pi\<^sub>M {..<n} M). exp (t * \<epsilon>) \<le> exp (t * (\<Sum>i<n. V i \<xi>))} \<in> sets (Pi\<^sub>M {..<n} M)"
@@ -649,8 +632,139 @@ proof -
   qed
   also have "... = exp(t^2 * (\<Sum>i<n. c i^2)/8-t*\<epsilon>)" by (simp add:PiM_empty atLeast0LessThan)
   also have "... = exp(t * ((t * (\<Sum>i<n. c i^2)/8)-\<epsilon>))" by (simp add:algebra_simps power2_eq_square)
-  also have "... = exp(t * (-\<epsilon>/2))" using pre by (auto simp add:divide_simps t_def)
+  also have "... = exp(t * (-\<epsilon>/2))" using sum_c_ge_0 by (auto simp add:divide_simps t_def)
   also have "... = ?R" unfolding t_def by (simp add:field_simps power2_eq_square)
+  finally show ?thesis by simp
+qed
+
+lemma mc_diarmid_inequality_distr:
+  fixes f :: "('i \<Rightarrow> 'a) \<Rightarrow> real"
+  assumes "finite I"
+  assumes "\<And>i. i \<in> I \<Longrightarrow> prob_space (M i)"
+  assumes "\<And>i x y. i \<in> I \<Longrightarrow> {x,y} \<subseteq> space (PiM I M) \<Longrightarrow> (\<forall>j\<in>I-{i}. x j=y j) \<Longrightarrow> \<bar>f x-f y\<bar>\<le>c i"
+  assumes f_meas: "f \<in> borel_measurable (PiM I M)" and \<epsilon>_gt_0: "\<epsilon> > 0"
+  shows "\<P>(\<omega> in PiM I M. f \<omega> - (\<integral>\<xi>. f \<xi> \<partial>PiM I M) \<ge> \<epsilon>) \<le> exp (-(2*\<epsilon>^2)/(\<Sum>i\<in>I. (c i)^2))" 
+    (is "?L \<le> ?R")
+proof -
+  define n where "n = card I"
+  let ?q = "from_nat_into I"
+  let ?r = "to_nat_on I"
+  let ?f = "(\<lambda>\<xi>. f (\<lambda>i\<in>I. \<xi> (?r i)))"
+
+  have q: "bij_betw ?q {..<n} I" unfolding n_def by (intro bij_betw_from_nat_into_finite assms(1))
+  have r: "bij_betw ?r I {..<n}" unfolding n_def by (intro to_nat_on_finite assms(1))
+
+  have [simp]: "?q (?r x) = x" if "x \<in> I" for x
+    by (intro from_nat_into_to_nat_on that countable_finite assms(1))
+
+  have [simp]: "?r (?q x) = x" if "x < n" for x
+    using bij_betw_imp_surj_on[OF r] that by (intro to_nat_on_from_nat_into) auto
+
+  have a: "\<And>i. i \<in> {..<n} \<Longrightarrow> prob_space ((M \<circ> ?q) i)"
+    unfolding comp_def by (intro assms(2) bij_betw_apply[OF q])
+
+  have b:"PiM I M = PiM I (\<lambda>i. (M \<circ> ?q) (?r i))" by (intro PiM_cong) (simp_all add:comp_def)
+  also have "... = distr (PiM {..<n} (M \<circ> ?q)) (PiM I (\<lambda>i. (M \<circ> ?q) (?r i))) (\<lambda>\<omega>. \<lambda>n\<in>I. \<omega> (?r n))"
+    using r unfolding bij_betw_def by (intro distr_PiM_reindex[symmetric] a) auto
+  finally have c: "PiM I M = distr (PiM{..<n}(M\<circ>?q)) (PiM I (\<lambda>i.(M\<circ>?q)(?r i))) (\<lambda>\<omega>. \<lambda>n\<in>I. \<omega> (?r n))"
+    by simp 
+
+  have d: "(\<lambda>n\<in>I. x (?r n)) \<in> space (Pi\<^sub>M I M)" if 4:"x \<in> space (Pi\<^sub>M {..<n} (M \<circ> ?q))" for x
+  proof -
+    have "x (?r i) \<in> space (M i)" if "i \<in> I" for i 
+    proof - 
+      have "?r i \<in> {..<n}" using bij_betw_apply[OF r] that by simp
+      hence "x (?r i) \<in> space ((M \<circ> ?q) (?r i))" using that 4 PiE_mem unfolding space_PiM by blast
+      thus ?thesis using that unfolding comp_def by simp
+    qed
+    thus ?thesis unfolding space_PiM PiE_def by auto
+  qed
+
+  have "?L = \<P>(\<omega> in PiM {..<n} (M \<circ> ?q). ?f \<omega> - (\<integral>\<xi>. f \<xi> \<partial>PiM I M) \<ge> \<epsilon>)"
+  proof (subst c, subst measure_distr, goal_cases)
+    case 1 thus ?case 
+      by (intro measurable_restrict measurable_component_singleton bij_betw_apply[OF r])
+  next
+    case 2 thus ?case unfolding b[symmetric] by (intro measurable_sets_Collect[OF f_meas]) auto 
+  next
+    case 3 thus ?case using d by (intro arg_cong2[where f="measure"] refl) (auto simp:vimage_def) 
+  qed
+  also have "... = \<P>(\<omega> in PiM {..<n} (M \<circ> ?q). ?f \<omega> - (\<integral>\<xi>. ?f \<xi> \<partial>PiM {..<n} (M \<circ> ?q)) \<ge> \<epsilon>)"
+  proof (subst c, subst integral_distr, goal_cases)
+    case (1 \<omega>) thus ?case 
+      by (intro measurable_restrict measurable_component_singleton bij_betw_apply[OF r])
+  next
+    case (2 \<omega>) thus ?case unfolding b[symmetric] by (rule f_meas) 
+  next
+    case 3 thus ?case by simp
+  qed
+  also have "... \<le> exp (-(2*\<epsilon>^2)/(\<Sum>i<n. (c (?q i))^2))"
+  proof (intro mc_diarmid_inequality_aux \<epsilon>_gt_0, goal_cases)
+    case (1 i) thus ?case by (intro a) auto
+  next
+    case (2 i x y)
+    have "x (?r j) = y (?r j)" if "j \<in> I - {?q i}" for j
+    proof -
+      have "?r j \<in> {..<n} - {i}" using that bij_betw_apply[OF r] by auto
+      thus ?thesis using 2 by simp
+    qed
+    hence "\<forall>j\<in>I - {?q i}. (\<lambda>i\<in>I. x (?r i)) j = (\<lambda>i\<in>I. y (?r i)) j" by auto
+    thus ?case using 2 d by (intro assms(3) bij_betw_apply[OF q]) auto
+  next
+    case 3
+    have "(\<lambda>x. x (?r i)) \<in> Pi\<^sub>M {..<n} (M \<circ> ?q) \<rightarrow>\<^sub>M M i" if "i \<in> I" for i
+    proof -
+      have 0:"M i = (M \<circ> ?q) (?r i)" using that by (simp add: comp_def) 
+      show ?thesis unfolding 0 by (intro measurable_component_singleton bij_betw_apply[OF r] that)
+    qed
+    thus ?case by (intro measurable_compose[OF _ f_meas] measurable_restrict)
+  qed
+  also have "... = ?R" by (subst sum.reindex_bij_betw[OF q]) simp
+  finally show ?thesis by simp
+qed
+
+lemma (in prob_space) mc_diarmid_inequality_classic:
+  fixes f :: "('i \<Rightarrow> 'a) \<Rightarrow> real"
+  assumes "finite I"
+  assumes "indep_vars N X I"
+  assumes "\<And>i x y. i \<in> I \<Longrightarrow> {x,y} \<subseteq> space (PiM I N) \<Longrightarrow> (\<forall>j\<in>I-{i}. x j=y j) \<Longrightarrow> \<bar>f x-f y\<bar>\<le>c i"
+  assumes f_meas: "f \<in> borel_measurable (PiM I N)" and \<epsilon>_gt_0: "\<epsilon> > 0"
+  shows "\<P>(\<omega> in M. f (\<lambda>i\<in>I. X i \<omega>) - (\<integral>\<xi>. f (\<lambda>i\<in>I. X i \<xi>) \<partial>M) \<ge> \<epsilon>) \<le> exp (-(2*\<epsilon>^2)/(\<Sum>i\<in>I. (c i)^2))" 
+    (is "?L \<le> ?R")
+proof -
+  note indep_imp = iffD1[OF indep_vars_iff_distr_eq_PiM'']
+  let ?O = "\<lambda>i. distr M (N i) (X i)"
+  have a:"distr M (Pi\<^sub>M I N) (\<lambda>x. \<lambda>i\<in>I. X i x) = Pi\<^sub>M I ?O"
+    using assms(2) unfolding indep_vars_def by (intro indep_imp[OF _ assms(2)]) auto
+
+  have b: "space (PiM I ?O) = space (PiM I N)"
+    by (metis (no_types, lifting) a space_distr)
+
+  have "(\<lambda>i\<in>I. X i \<omega>) \<in> space (Pi\<^sub>M I N)" if "\<omega> \<in> space M" for \<omega>
+    using assms(2) that unfolding indep_vars_def measurable_def space_PiM by auto
+
+  hence "?L = \<P>(\<omega> in M. (\<lambda>i\<in>I. X i \<omega>)\<in> space (Pi\<^sub>M I N)\<and> f (\<lambda>i\<in>I. X i \<omega>)-(\<integral>\<xi>. f (\<lambda>i\<in>I. X i \<xi>) \<partial>M)\<ge>\<epsilon>)"
+    by (intro arg_cong2[where f="measure"] Collect_restr_cong refl) auto
+  also have "... = \<P>(\<omega> in distr M (Pi\<^sub>M I N) (\<lambda>x. \<lambda>i\<in>I. X i x). f \<omega> - (\<integral>\<xi>. f (\<lambda>i\<in>I. X i \<xi>) \<partial>M) \<ge> \<epsilon>)"
+  proof (subst measure_distr, goal_cases)
+    case 1 thus ?case using assms(2) unfolding indep_vars_def by (intro measurable_restrict) auto
+  next
+    case 2 thus ?case unfolding space_distr by (intro measurable_sets_Collect[OF f_meas]) auto
+  next
+    case 3 thus ?case by (simp_all add:Int_def conj_commute)
+  qed
+  also have "... = \<P>(\<omega> in PiM I ?O. f \<omega> - (\<integral>\<xi>. f (\<lambda>i\<in>I. X i \<xi>) \<partial>M) \<ge> \<epsilon>)"
+    unfolding a by simp
+  also have "... = \<P>(\<omega> in PiM I ?O. f \<omega> - (\<integral>\<xi>. f \<xi> \<partial> distr M (Pi\<^sub>M I N) (\<lambda>x. \<lambda>i\<in>I. X i x)) \<ge> \<epsilon>)"
+  proof (subst integral_distr[OF _ f_meas], goal_cases)
+    case (1 \<omega>) thus ?case using assms(2) unfolding indep_vars_def by (intro measurable_restrict)auto 
+  next
+    case 2 thus ?case by simp
+  qed 
+  also have "... = \<P>(\<omega> in PiM I ?O. f \<omega> - (\<integral>\<xi>. f \<xi> \<partial> Pi\<^sub>M I ?O) \<ge> \<epsilon>)" unfolding a by simp
+  also have "... \<le> ?R"
+    using f_meas assms(2) b unfolding indep_vars_def
+    by (intro mc_diarmid_inequality_distr prob_space_distr assms(1) \<epsilon>_gt_0 assms(3)) auto
   finally show ?thesis by simp
 qed
 
