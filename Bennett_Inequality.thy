@@ -1,5 +1,10 @@
 section \<open>Bennett's Inequality\<close>
 
+text \<open>In this section we verify Bennett's inequality~\cite{bennett1962} and a (weak) version of
+Bernstein's inequality as a corollary. Both inequalities give concentration bounds for sums of
+independent random variables. The statement and proofs follow a summary paper by
+Boucheron et al.~\cite{DBLP:conf/ac/BoucheronLB03}.\<close>
+
 theory Bennett_Inequality
   imports Concentration_Inequalities_Preliminary
 begin
@@ -312,7 +317,6 @@ next
   finally show ?thesis .
 qed
 
-(* following AE_equal_sum *)
 lemma real_AE_le_sum:
   assumes "\<And>i. i \<in> I \<Longrightarrow> AE x in M. f i x \<le> (g i x::real)"
   shows "AE x in M. (\<Sum>i\<in>I. f i x) \<le> (\<Sum>i\<in>I. g i x)"
@@ -396,6 +400,7 @@ proof -
   finally show ?thesis .
 qed
 
+(* This proof follows https://math.stackexchange.com/a/4066844 *)
 lemma bennett_h_bernstein_bound:
   assumes "x \<ge> 0"
   shows "bennett_h x \<ge> x^2 / (2 * (1 + x / 3))"

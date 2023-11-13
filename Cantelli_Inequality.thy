@@ -1,5 +1,8 @@
 section \<open>Cantelli's Inequality\<close>
 
+text \<open>Cantelli's inequality~\cite{cantelli1929sui} is an improvement of Chebyshev's inequality for
+one-sided tail bounds.\<close>
+
 theory Cantelli_Inequality
   imports "HOL-Probability.Probability"
 begin

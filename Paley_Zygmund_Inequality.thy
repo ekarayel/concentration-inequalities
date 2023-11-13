@@ -1,8 +1,10 @@
 section \<open>Paley-Zygmund Inequality\<close>
 
+text \<open>This section proves slight improvements of the Paley-Zygmund Inequality~\cite{paley1932note}.
+Unfortunately, the improvements are on Wikipedia with no citation.\<close>
+
 theory Paley_Zygmund_Inequality
-  imports "HOL-Probability.Probability"
-    Lp.Lp
+  imports Lp.Lp
 begin
 
 context prob_space
