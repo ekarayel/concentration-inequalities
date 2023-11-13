@@ -38,7 +38,7 @@ next
     by auto
 
   define S where "S = (\<lambda>x. (\<Sum>i \<in>I. X i x - expectation (X i)))"
- 
+
   have int1: "\<And>i. i \<in> I \<Longrightarrow>
          integrable M (\<lambda>\<omega>. exp (s * (X i \<omega> - expectation (X i))))"
     by (auto simp add: algebra_simps exp_diff int)
@@ -82,7 +82,7 @@ lemma exp_sub_two_terms_eq:
     "summable (\<lambda>n. x^(n+2) / fact (n+2))"
 proof -
   have "(\<Sum>i<2. inverse (fact i) * x ^ i) = 1 + x"
-    by (simp add:numeral_eq_Suc) 
+    by (simp add:numeral_eq_Suc)
   thus "exp x - x - 1 = (\<Sum>n. x^(n+2) / fact (n+2))"
     unfolding exp_def
     apply (subst suminf_split_initial_segment[where k = 2])
@@ -92,7 +92,7 @@ proof -
   then have "summable (\<lambda>n. x^(Suc (Suc n)) / fact (Suc (Suc n)))"
     apply (subst summable_Suc_iff)
     apply (subst summable_Suc_iff)
-    by auto 
+    by auto
   thus "summable (\<lambda>n. x^(n+2) / fact (n+2))" by auto
 qed
 
@@ -104,7 +104,7 @@ proof -
   have 1: "(f has_real_derivative (exp x - x - 1)) (at x)" for x
     unfolding f_def
     by (auto intro!: derivative_eq_intros)
-  
+
   have 2: "\<And>x. x \<in> {a..b} \<Longrightarrow> 0 \<le> exp x - x - 1"
     by (smt (verit) exp_ge_add_one_self)
 
@@ -166,7 +166,7 @@ proof -
 
     then have "y^2 * ((exp x - x - 1) - x^2 /2) \<le> x^2 * ((exp y - y - 1) - y^2/2)"
       by (smt (verit, best) ineq diff_divide_distrib exp_lower_Taylor_quadratic le(1) le(2) mult_nonneg_nonneg one_less_exp_iff power_zero_numeral prob_space.psi_mono prob_space_completion right_diff_distrib zero_le_power2)
-      
+
     then have "y^2 * (exp x - x - 1) \<le> x^2 * (exp y - y - 1)"
       by (simp add: mult.commute right_diff_distrib)
   }
@@ -303,7 +303,7 @@ next
     apply (intro mult_left_mono[OF **])
     by (meson exp_ge_zero prod_nonneg)
   also have "... = exp (\<psi> l * V)"
-    apply (auto simp add: prod.distrib [symmetric])[1]
+    apply (simp add: prod.distrib [symmetric])
     by (smt (verit, ccfv_threshold) exp_minus_inverse prod.not_neutral_contains_not_neutral)
   finally have "
     prob {x \<in> space M. (\<Sum>i \<in> I. X i x - expectation (X i)) \<ge> t} \<le>
@@ -339,7 +339,7 @@ proof -
     apply (drule assms)
     by auto
   show ?thesis
-    using 1 2 
+    using 1 2
     by auto
 qed
 
@@ -381,7 +381,7 @@ proof -
   have rw3:"- (\<Sum>i\<in>I. expectation (\<lambda>x. (X i x)\<^sup>2) / B^2) = - V / B^2"
     unfolding V_def
     by (auto simp add: sum_divide_distrib)
-  
+
   have "t / B / (\<Sum>i\<in>I. expectation (\<lambda>x. (X i x)\<^sup>2) / B^2) =
     t / B / (V / B^2)"
     unfolding V_def
@@ -416,9 +416,9 @@ proof -
   define g'' where "g'' = (\<lambda>x::real.
       1 / (1 + x) - 27  / (x+3)^3)"
 
-  have "54 / ((2 * x + 6)^2) = 27 / (2 * (x + 3)\<^sup>2)" (is "?L = ?R") for x :: real 
+  have "54 / ((2 * x + 6)^2) = 27 / (2 * (x + 3)\<^sup>2)" (is "?L = ?R") for x :: real
   proof -
-    have "?L = 54 / (2^2 * (x + 3)^2)" 
+    have "?L = 54 / (2^2 * (x + 3)^2)"
       unfolding power_mult_distrib[symmetric] by (simp add:algebra_simps)
     also have "... = ?R" by simp
     finally show ?thesis by simp
@@ -430,7 +430,7 @@ proof -
     unfolding g'_def g''_def
     apply (auto intro!: derivative_eq_intros)[1]
     by (sos "(() & ())")
-  
+
   have gz: "g 0 = 0"
     unfolding g_def bennett_h_def by auto
   have g1z: "g' 0 = 0"
@@ -444,7 +444,7 @@ proof -
       using that by (subst frac_le_eq) (auto intro!:divide_nonpos_pos)
     thus ?thesis unfolding g''_def by simp
   qed
-  
+
   from deriv_nonneg_imp_mono[OF 2 p2 _]
   have "x \<ge> 0 \<Longrightarrow> g' x \<ge> 0" for x using g1z
     by (metis atLeastAtMost_iff)
@@ -467,7 +467,7 @@ proof -
     using assms
     apply (subst sum_nonneg_eq_0_iff[symmetric])
     by auto
-  then have "expectation (\<lambda>x. X i x^2) = 0" 
+  then have "expectation (\<lambda>x. X i x^2) = 0"
     using assms(2) by blast
   thus ?thesis
     using integral_nonneg_eq_0_iff_AE[OF intsq]
@@ -516,7 +516,7 @@ next
     apply (intro sum_nonneg  integral_nonneg_AE)
     by auto
   then have V: "V > 0" using f by auto
-    
+
   have "t * B / V \<ge> 0" using t B V by auto
   from bennett_h_bernstein_bound[OF this]
   have "(t * B / V)\<^sup>2 / (2 * (1 + t * B / V / 3))

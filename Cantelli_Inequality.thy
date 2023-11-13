@@ -58,7 +58,7 @@ proof -
     unfolding Y_def
     apply (subst Bochner_Integration.integral_add[OF intZ])
     using prob_space by auto
-    
+
   then have "expectation (\<lambda>z. (Y z + u)^2) =
     expectation (\<lambda>z. (Y z)^2) + u^2"
     unfolding power2_sum

@@ -3,7 +3,7 @@ section \<open>Efron-Stein Inequality\<close>
 text \<open>In this section we verify the Efron-Stein inequality. The verified theorem is stated as
 Efron-Stein inequality for non-symmetric functions by Steele~\cite{steele1986}. However most
 textbook refer to this version as ``the Efron-Stein inequality''. The original result that was shown
-by Efron and Stein is a tail bound for the variance of a symmetric functions of i.i.d. 
+by Efron and Stein is a tail bound for the variance of a symmetric functions of i.i.d.
 random variables~\cite{efron1981}.\<close>
 
 theory Efron_Stein_Inequality

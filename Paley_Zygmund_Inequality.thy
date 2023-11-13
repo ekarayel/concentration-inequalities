@@ -68,14 +68,13 @@ proof -
    (\<lambda>x. 1 * indicat_real {z \<in> space M. \<theta> * eZ < Z z} x)"
     apply (intro integrable_real_mult_indicator[OF ev])
     by auto
-    
+
   then have int2: " integrable M
      (\<lambda>x. \<bar>indicat_real {z \<in> space M. \<theta> * eZ < Z z} x\<bar> powr q)"
      by (auto simp add: sqI )
 
   have pq:"p > (0::real)" "q > 0" "1/p + 1/q = 1"
-    unfolding q_def using p apply auto
-    by (metis add.commute add_divide_distrib diff_add_cancel div_self not_one_less_zero)
+    unfolding q_def using p by (auto simp:divide_simps)
   from Holder_inequality[OF pq bm1 bm2 int1 int2]
   have hi: "expectation (\<lambda>x. (Z x - \<theta> * eZ) * indicat_real {z \<in> space M. \<theta> * eZ < Z z} x)
     \<le> expectation (\<lambda>x. \<bar>Z x - \<theta> * eZ\<bar> powr p) powr (1 / p) *
