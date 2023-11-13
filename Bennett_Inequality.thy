@@ -312,8 +312,8 @@ next
   also have "\<psi> l * V - l * t = -V * bennett_h (t / V)"
     unfolding \<psi>_def l_def bennett_h_def
     apply (subst exp_ln)
-    apply (auto simp add: algebra_simps)
-    by (smt (verit) Vpos divide_nonneg_nonneg t)
+    subgoal by (smt (verit) Vpos divide_nonneg_nonneg t)
+    by (auto simp add: algebra_simps)
   finally show ?thesis .
 qed
 
