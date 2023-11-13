@@ -1,3 +1,5 @@
+section \<open>Paley-Zygmund Inequality\<close>
+
 theory Paley_Zygmund_Inequality
   imports "HOL-Probability.Probability"
     Lp.Lp

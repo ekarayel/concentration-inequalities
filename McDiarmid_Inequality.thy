@@ -1,3 +1,9 @@
+section \<open>McDiarmid's inequality\<close>
+
+text \<open>In this section we verify McDiarmid's inequality \cite[Lemma 1.2]{mcdiarmid1989}. In the
+source and also further sources sometimes refer to the result as the ``independent bounded 
+differences'' inequality.\<close> 
+
 theory McDiarmid_Inequality
   imports Concentration_Inequalities_Preliminary
 begin
@@ -20,7 +26,7 @@ lemma restrict_subset_eq:
   shows "restrict f A = restrict g A"
   using assms unfolding restrict_def by (meson subsetD)
 
-text \<open>Bochner Integral version of 
+text \<open>Bochner Integral version of Hoeffding's Lemma using
   @{thm [source] interval_bounded_random_variable.Hoeffdings_lemma_nn_integral_0}\<close>
 
 lemma (in prob_space) Hoeffdings_lemma_bochner:

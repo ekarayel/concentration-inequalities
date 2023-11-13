@@ -1,3 +1,9 @@
+section \<open>Bienaym\'e's identity\<close>
+
+text \<open>Bienaym\'e's identity~\cite[\S 17]{loeve1977} can be used to deduce the variance of a sum of 
+random variables, if their co-variance is known. A common use-case of the identity is the 
+computation of the variance of the mean of pair-wise independent variables.\<close>
+
 theory Bienaymes_Identity
   imports Concentration_Inequalities_Preliminary
 begin

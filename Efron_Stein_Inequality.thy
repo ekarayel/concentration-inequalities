@@ -1,8 +1,16 @@
-theory Effron_Stein_Inequality
+section \<open>Efron-Stein Inequality\<close>
+
+text \<open>In this section we verify the Efron-Stein inequality. The verified theorem is stated as
+Efron-Stein inequality for non-symmetric functions by Steele~\cite{steele1986}. However most
+textbook refer to this version as ``the Efron-Stein inequality''. The original result that was shown
+by Efron and Stein is a tail bound for the variance of a symmetric functions of i.i.d. 
+random variables~\cite{efron1981}.\<close>
+
+theory Efron_Stein_Inequality
   imports Concentration_Inequalities_Preliminary
 begin
 
-theorem effron_stein_inequality_distr:
+theorem efron_stein_inequality_distr:
   fixes f :: "_ \<Rightarrow> real"
   assumes "finite I"
   assumes "\<And>i. i \<in> I \<Longrightarrow> prob_space (M i)"
@@ -217,7 +225,7 @@ proof -
     by simp
 qed
 
-theorem (in prob_space) effron_stein_inequality_classic:
+theorem (in prob_space) efron_stein_inequality_classic:
   fixes f :: "_ \<Rightarrow> real"
   assumes "finite I"
   assumes "indep_vars (M' \<circ> fst) X (I \<times> (UNIV :: bool set))"
@@ -278,7 +286,7 @@ proof -
   also have "... = prob_space.variance ?M f"
     unfolding 0 by simp
   also have "... \<le> (\<Sum>i\<in>I. (\<integral>x. (f (\<lambda>j. x (j, False)) - f (\<lambda>j. x (j, j = i)))^2 \<partial>?N)) / 2"
-    using assms(3) by (intro effron_stein_inequality_distr prob_space_distr rv assms(1) 3) auto
+    using assms(3) by (intro efron_stein_inequality_distr prob_space_distr rv assms(1) 3) auto
   also have "... = (\<Sum>i\<in>I. expectation (\<lambda>\<omega>. (f (\<lambda>j. (\<lambda>i\<in>I\<times>UNIV. X i \<omega>) (j, False)) -
     f (\<lambda>j. (\<lambda>i\<in>I\<times>UNIV. X i \<omega>) (j, j=i)))\<^sup>2)) / 2"
     using rv unfolding 2

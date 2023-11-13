@@ -1,3 +1,5 @@
+section \<open>Bennett's Inequality\<close>
+
 theory Bennett_Inequality
   imports Concentration_Inequalities_Preliminary
 begin

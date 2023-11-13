@@ -9,7 +9,7 @@ session Concentration_Inequalities = "HOL-Probability" +
     Bienaymes_Identity
     Cantelli_Inequality
     Concentration_Inequalities_Preliminary
-    Effron_Stein_Inequality
+    Efron_Stein_Inequality
     McDiarmid_Inequality
     Paley_Zygmund_Inequality
   document_files

@@ -1,3 +1,5 @@
+section \<open>Preliminary results\<close>
+
 theory Concentration_Inequalities_Preliminary
   imports Lp.Lp
 begin

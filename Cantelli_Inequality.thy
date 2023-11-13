@@ -1,3 +1,5 @@
+section \<open>Cantelli's Inequality\<close>
+
 theory Cantelli_Inequality
   imports "HOL-Probability.Probability"
 begin
