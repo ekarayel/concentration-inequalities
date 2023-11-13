@@ -10,7 +10,7 @@ begin
 context prob_space
 begin
 
-lemma paley_zygmund_holder:
+lemma paley_zygmund_inequality_holder:
   assumes p: "1 < (p::real)"
   assumes rv: "random_variable borel Z"
   assumes intZp: "integrable M (\<lambda>z. \<bar>Z z\<bar> powr p)"
@@ -134,7 +134,7 @@ proof -
   finally show ?thesis using 1 eZ_def q_def by force
 qed
 
-corollary paley_zygmund:
+corollary paley_zygmund_inequality:
   assumes rv: "random_variable borel Z"
   assumes intZsq: "integrable M (\<lambda>z. (Z z)^2)"
   assumes t: "\<theta> \<le> 1"
@@ -152,7 +152,7 @@ proof -
   have " integrable M (\<lambda>z. \<bar>Z z\<bar> powr p)" unfolding p_def
     using intZsq by auto
 
-  from paley_zygmund_holder[OF p1 rv this t ZAEpos]
+  from paley_zygmund_inequality_holder[OF p1 rv this t ZAEpos]
   have "(1 - \<theta>) powr (p / (p - 1)) * (expectation Z powr (p / (p - 1)))
     \<le> expectation (\<lambda>x. \<bar>Z x - \<theta> * expectation Z\<bar> powr p) powr (1 / (p - 1)) *
        prob {z \<in> space M.  \<theta> * expectation Z < Z z}" .
